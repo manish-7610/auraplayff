@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Backend: allow post-release cancellation with correct refunds and fix tournament visibility. Three files change: tournament.py model (status sets), tournament_service.py (remove lock guard), tournaments.py player router (listing filter). Tests in test_room_release_lock.py are rewritten for the new behaviour.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "Step 1 — backend/app/models/tournament.py: Add TournamentStatus.room_released to CANCELLABLE_STATUSES frozenset. Add TournamentStatus.cancelled to VALID_TRANSITIONS[TournamentStatus.room_released] set. Update the module docstring comment from 'CANCELLED — cancelled from OPEN or CONFIRMED' to include ROOM_RELEASED.",
     "Step 2 — backend/app/services/tournament_service.py: Remove the 'Room-release lock guard' block inside cancel_tournament (the 'if tournament.room_is_released: raise TournamentLockedAfterRoomReleaseError()' block, approximately lines 305-310). Remove TournamentLockedAfterRoomReleaseError from the import list at the top of the file (it is only used in that block). Do NOT change any other logic — the existing CANCELLABLE_STATUSES check, refund loop, idempotency keys, and transaction structure are all correct and unchanged.",
@@ -26,5 +26,5 @@
     "cd backend && python -m pytest"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 24 tests in test_room_release_lock.py pass (6 old B-series tests removed, 11 new tests added, 7 pre-existing tests preserved). Full suite: 376 pass, 10 pre-existing failures (sqlite3.OperationalError on SUBSTRING/FROM regex syntax in _generate_tournament_code — unrelated to FEAT-001, existed before changes). Changes committed in initial repo commit."
 }
