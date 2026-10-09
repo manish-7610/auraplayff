@@ -1,0 +1,28 @@
+{
+  "project_type": "FastAPI backend (Python 3.14) + vanilla JS/HTML frontend, PostgreSQL via SQLAlchemy async",
+  "language": "Python (backend), JavaScript ES modules (frontend)",
+  "build_system": "No explicit build step for backend or frontend. Backend runs with uvicorn. Frontend is plain HTML/JS served statically.",
+  "test_framework": "pytest with pytest-asyncio (mode=AUTO). SQLite in-memory via aiosqlite for tests. 381 tests baseline.",
+  "build_command": "No compile step. Backend: cd backend && python -m pytest (for verification).",
+  "test_command": "cd backend && python -m pytest",
+  "verification_instructions": "1. cd backend  2. python -m pytest  3. All tests must pass (381 baseline + new tests).  4. Targeted: python -m pytest tests/test_room_release_lock.py -v",
+  "snapshot_or_generated_files": null,
+  "environment_constraints": "Do NOT push to git. Work in worktree only. Windows filesystem — use backslashes or forward slashes consistently. Workspace root is c:\\Users\\macrosoft\\Desktop\\auraplayff",
+  "contribution_requirements": "Preserve existing architecture. No new dependencies. No schema migrations (all required columns exist). Reuse existing service functions. Keep RBAC unchanged — no new Agent permissions.",
+  "key_patterns": "1. Services never commit — routers call db.commit() after service returns. 2. All mutating operations use SELECT FOR UPDATE via get_tournament_for_update(). 3. Idempotency keys: 'refund_deposit:<entry_uuid>', 'refund_referral:<entry_uuid>' stored in WalletTransaction with UNIQUE constraint. 4. AppError subclasses have .code, .message, .status_code — raised in service, caught by registered handler. 5. Frontend uses ES modules imported at bottom of HTML. Existing UI utilities: statusBadge, formatDateTime, formatAmount, escapeHtml, openModal, closeModal, toastSuccess, toastError all in /assets/js/ui.js. 6. Admin JS in /assets/js/admin/admin-tournaments.js — adminGet/adminPost from admin-api.js, showToast/statusChip/fmtDateTime/confirmAction/escHtml from admin-ui.js.",
+  "relevant_files": [
+    "backend/app/models/tournament.py",
+    "backend/app/services/tournament_service.py",
+    "backend/app/routers/tournaments.py",
+    "backend/app/routers/admin_tournaments.py",
+    "backend/app/core/exceptions.py",
+    "backend/app/core/permissions.py",
+    "backend/tests/test_room_release_lock.py",
+    "backend/tests/conftest.py",
+    "frontend/assets/js/tournaments.js",
+    "frontend/assets/js/ui.js",
+    "frontend/assets/js/admin/admin-tournaments.js",
+    "frontend/tournament-details.html"
+  ],
+  "directory_structure": "backend/app/models/ — SQLAlchemy models (tournament.py, wallet.py, user.py, staff_user.py, audit_log.py). backend/app/services/ — business logic (tournament_service.py, wallet_service.py, audit_service.py). backend/app/routers/ — FastAPI route handlers (tournaments.py player-facing, admin_tournaments.py admin-facing). backend/app/core/ — exceptions.py, permissions.py. backend/tests/ — pytest tests with conftest.py. frontend/ — HTML pages. frontend/assets/js/ — ES module JS (tournaments.js, ui.js, wallet.js, api.js, auth.js, layout.js). frontend/assets/js/admin/ — admin-specific JS (admin-tournaments.js, admin-api.js, admin-ui.js). frontend/assets/css/theme.css — design system."
+}

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deposits — AuraPlayFF Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin-theme.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <div class="admin-main">
+    <div class="admin-topbar"></div>
+    <main class="admin-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Deposits</h1>
+          <p class="page-subtitle">Review and approve manual UPI deposits — Super Admin only</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary btn-sm" id="btn-refresh">↺ Refresh</button>
+        </div>
+      </div>
+
+      <div class="alert alert-info" style="margin-bottom:16px">
+        ℹ Online (Razorpay) deposits are verified server-side automatically. Only manual UPI deposits require approval here.
+      </div>
+
+      <div class="filters-bar">
+        <select class="form-select" id="filter-dep-status">
+          <option value="">All Statuses</option>
+          <option value="pending_manual_verification">Pending Verification</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="paid">Paid (Online)</option>
+          <option value="failed">Failed</option>
+        </select>
+        <select class="form-select" id="filter-dep-method">
+          <option value="">All Methods</option>
+          <option value="manual">Manual UPI</option>
+          <option value="online">Online (Razorpay)</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="btn-dep-reset">✕ Reset</button>
+      </div>
+
+      <div class="card" style="padding:0">
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Method</th>
+              <th>UTR</th>
+              <th>Provider Ref</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="deposits-tbody">
+              <tr><td colspan="9" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="deposits-pagination"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="/assets/js/admin/admin-config.js"></script>
+<script type="module">
+  import { requireAdminSession } from '/assets/js/admin/admin-auth.js';
+  import { initAdminLayout }    from '/assets/js/admin/admin-layout.js';
+  import { loadDeposits, setupDepositFilters } from '/assets/js/admin/admin-finance.js';
+
+  (async () => {
+    const profile = await requireAdminSession();
+    if (!profile) return;
+    await initAdminLayout({ page: 'deposits', title: 'Deposits' });
+    setupDepositFilters();
+    await loadDeposits();
+    document.getElementById('btn-refresh').addEventListener('click', loadDeposits);
+  })();
+</script>
+</body>
+</html>

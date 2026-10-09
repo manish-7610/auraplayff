@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Details — AuraPlayFF Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin-theme.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <div class="admin-main">
+    <div class="admin-topbar"></div>
+    <main class="admin-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <a href="/admin/agents.html" style="color:var(--color-text-muted);font-size:13px">← All Agents</a>
+          <h1 class="page-title" id="ad-agent-id">Loading…</h1>
+          <p class="page-subtitle" id="ad-display-name"></p>
+        </div>
+        <div class="page-header-actions">
+          <div id="ad-status"></div>
+          <button class="btn btn-secondary btn-sm admin-only" id="btn-ad-toggle">Toggle Active</button>
+          <button class="btn btn-warning btn-sm admin-only" id="btn-ad-reset-pw">🔑 Reset PW</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="profile">Profile</button>
+        <button class="tab-btn" data-tab="today">Today</button>
+        <button class="tab-btn" data-tab="month">This Month</button>
+        <button class="tab-btn" data-tab="salary">Salary</button>
+        <button class="tab-btn" data-tab="history">Grace / Warnings</button>
+        <button class="tab-btn admin-only" data-tab="tournaments">🏆 Tournament History</button>
+        <button class="tab-btn admin-only" data-tab="permissions">🔑 Permissions</button>
+      </div>
+
+      <!-- Profile tab -->
+      <div class="tab-panel active" id="tab-profile">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Agent Info</span></div>
+          <div class="detail-grid">
+            <div class="detail-item"><div class="detail-label">Agent ID</div><div class="detail-value" id="ad-agent-id-2"></div></div>
+            <div class="detail-item"><div class="detail-label">Role</div><div class="detail-value" id="ad-role"></div></div>
+            <div class="detail-item"><div class="detail-label">Created</div><div class="detail-value" id="ad-created"></div></div>
+            <div class="detail-item"><div class="detail-label">Last Seen</div><div class="detail-value" id="ad-last-seen"></div></div>
+          </div>
+        </div>
+
+        <!-- Tier reference -->
+        <div class="card" style="margin-top:20px">
+          <div class="card-header"><span class="card-title">Daily Target Reference</span></div>
+          <div class="table-container" style="border:none">
+            <table>
+              <thead><tr><th>Tier</th><th>Daily Target</th><th>Extra Bonus/Tournament</th><th>Base Salary</th></tr></thead>
+              <tbody>
+                <tr><td>₹10</td><td>8/day</td><td>₹25</td><td rowspan="6" style="vertical-align:middle;font-weight:700;font-size:16px;color:var(--color-success)">₹10,000/mo</td></tr>
+                <tr><td>₹20</td><td>7/day</td><td>₹40</td></tr>
+                <tr><td>₹30</td><td>6/day</td><td>₹60</td></tr>
+                <tr><td>₹40</td><td>5/day</td><td>₹80</td></tr>
+                <tr><td>₹50</td><td>4/day</td><td>₹100</td></tr>
+                <tr><td>₹100</td><td>3/day</td><td>₹200</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="font-size:11px;color:var(--color-text-dim);margin-top:8px">Actual targets are configurable in backend. Use /api/admin/targets to view/update.</p>
+        </div>
+      </div>
+
+      <!-- Today tab -->
+      <div class="tab-panel" id="tab-today">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Today's Performance</span></div>
+          <div id="ad-today-perf"><div style="text-align:center;padding:32px"><div class="loading-spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- Month tab -->
+      <div class="tab-panel" id="tab-month">
+        <div class="card">
+          <div class="card-header"><span class="card-title">This Month Summary</span></div>
+          <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+            <div class="stat-card"><div class="stat-label">Base Salary</div><div class="stat-value" id="ad-month-base" style="font-size:16px">—</div></div>
+            <div class="stat-card success"><div class="stat-label">Extra Bonus</div><div class="stat-value" id="ad-month-bonus" style="font-size:16px">—</div></div>
+            <div class="stat-card danger"><div class="stat-label">Deductions</div><div class="stat-value" id="ad-month-deductions" style="font-size:16px">—</div></div>
+            <div class="stat-card"><div class="stat-label">Adjustment</div><div class="stat-value" id="ad-month-adj" style="font-size:16px">—</div></div>
+            <div class="stat-card blue"><div class="stat-label">Est. Final</div><div class="stat-value" id="ad-month-final" style="font-size:16px">—</div></div>
+          </div>
+          <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-top:12px">
+            <div class="stat-card"><div class="stat-label">Days Met</div><div class="stat-value" id="ad-days-met">—</div></div>
+            <div class="stat-card danger"><div class="stat-label">Days Missed</div><div class="stat-value" id="ad-days-missed">—</div></div>
+            <div class="stat-card warning"><div class="stat-label">Days Graced</div><div class="stat-value" id="ad-days-grace">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Salary tab -->
+      <div class="tab-panel" id="tab-salary">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Current Month Salary</span>
+            <span id="ad-sal-status"></span>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-item"><div class="detail-label">Base Salary</div><div class="detail-value" id="ad-sal-base">—</div></div>
+            <div class="detail-item"><div class="detail-label">Extra Bonus</div><div class="detail-value" style="color:var(--color-success)" id="ad-sal-bonus">—</div></div>
+            <div class="detail-item"><div class="detail-label">Deductions</div><div class="detail-value" style="color:var(--color-danger)" id="ad-sal-ded">—</div></div>
+            <div class="detail-item"><div class="detail-label">Manual Adj.</div><div class="detail-value" id="ad-sal-adj">—</div></div>
+            <div class="detail-item"><div class="detail-label">Final Salary</div><div class="detail-value" style="font-size:18px;font-weight:700;color:var(--color-success)" id="ad-sal-final">—</div></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:16px" class="admin-only">
+            <button class="btn btn-warning btn-sm" id="btn-ad-sal-adjust">± Adjust</button>
+            <button class="btn btn-primary btn-sm" id="btn-ad-sal-confirm">🔒 Confirm Salary</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- History tab -->
+      <div class="tab-panel" id="tab-history">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Grace Records</span>
+              <button class="btn btn-success btn-sm admin-only" id="btn-ad-grace">+ Issue Grace</button>
+            </div>
+            <div id="ad-graces-list"><div style="text-align:center;padding:20px"><div class="loading-spinner"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Warnings</span>
+              <button class="btn btn-warning btn-sm admin-only" id="btn-ad-warn">⚠ Issue Warning</button>
+            </div>
+            <div id="ad-warnings-list"><div style="text-align:center;padding:20px"><div class="loading-spinner"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!--
+        ── Tournament History tab (Super Admin only) ────────────────────────────
+        Read-only view of all tournaments created by this agent.
+        Scoped server-side: tournament.created_by_id == agent.id
+      -->
+      <div class="tab-panel admin-only" id="tab-tournaments">
+        <!-- Filters bar -->
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+          <input type="search" id="th-search" class="form-input"
+                 placeholder="Search by code or title…"
+                 style="max-width:260px;min-width:160px"
+                 aria-label="Search tournaments">
+          <select id="th-filter-status" class="form-select" style="max-width:180px">
+            <option value="">All Statuses</option>
+            <option value="draft">Draft</option>
+            <option value="open">Open</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="room_released">Room Released</option>
+            <option value="live">Live</option>
+            <option value="result_entry">Result Entry</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="btn-th-reset">✕ Reset</button>
+          <button class="btn btn-secondary btn-sm" id="btn-th-refresh">↺ Refresh</button>
+          <span id="th-total-badge" class="chip" style="font-size:12px"></span>
+        </div>
+
+        <!-- Tournament table -->
+        <div class="card" style="padding:0">
+          <div class="table-container">
+            <table>
+              <thead><tr>
+                <th>Code / Title</th>
+                <th>Entry Fee</th>
+                <th>Status</th>
+                <th style="text-align:right">Players</th>
+                <th>Scheduled</th>
+                <th>Completed / Cancelled</th>
+              </tr></thead>
+              <tbody id="th-tbody">
+                <tr><td colspan="6" style="text-align:center;padding:40px">
+                  <div class="loading-spinner"></div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="th-pagination" style="padding:12px 20px;border-top:1px solid var(--color-border)"></div>
+        </div>
+      </div>
+
+      <!--
+        ── Permissions tab (Super Admin only) ──────────────────────────────────
+        Hidden from agents via .admin-only CSS + body.role-agent CSS rule.
+        Backend enforces Super Admin RBAC on all grant/revoke endpoints.
+        Agents cannot see this panel, cannot call grant/revoke APIs, and
+        cannot escalate their own permissions.
+      -->
+      <div class="tab-panel admin-only" id="tab-permissions">
+        <div class="card" id="ad-perm-card">
+          <div class="card-header" style="justify-content:space-between">
+            <span class="card-title">🔑 Agent Permissions</span>
+            <span id="ad-perm-status" style="font-size:var(--text-xs);color:var(--color-text-muted)"></span>
+          </div>
+
+          <!-- Info banner -->
+          <div style="margin:0 var(--space-5) var(--space-4);padding:var(--space-3) var(--space-4);background:rgba(78,158,255,.08);border:1px solid rgba(78,158,255,.2);border-radius:var(--radius-md);font-size:var(--text-xs);color:var(--color-blue)">
+            ℹ️ Check permissions to grant them. Uncheck to revoke. Click <strong>Save Permissions</strong> to apply changes.
+            Sensitive financial and system permissions are blocked from being granted to agents.
+          </div>
+
+          <!-- Loading / error / content area -->
+          <div id="ad-perm-body" style="padding:0 var(--space-5) var(--space-5)">
+            <div style="text-align:center;padding:32px"><div class="loading-spinner"></div></div>
+          </div>
+
+          <!-- Save button (shown after permissions load) -->
+          <div id="ad-perm-footer" style="display:none;padding:var(--space-4) var(--space-5);border-top:1px solid var(--color-border);display:flex;align-items:center;gap:var(--space-3)">
+            <button class="btn btn-primary" id="btn-ad-perm-save">Save Permissions</button>
+            <button class="btn btn-ghost btn-sm" id="btn-ad-perm-reload">↺ Reload</button>
+            <span id="ad-perm-save-msg" style="font-size:var(--text-xs);color:var(--color-text-muted)"></span>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="/assets/js/admin/admin-config.js"></script>
+<script type="module">
+  import { requireAdminSession } from '/assets/js/admin/admin-auth.js';
+  import { initAdminLayout }    from '/assets/js/admin/admin-layout.js';
+  import { isSuper }            from '/assets/js/admin/admin-api.js';
+  import {
+    loadAgentDetail, issueGrace, issueWarning,
+    loadPermissions, savePermissions,
+    loadAgentTournamentHistory,
+  } from '/assets/js/admin/admin-agents.js';
+
+  (async () => {
+    const profile = await requireAdminSession();
+    if (!profile) return;
+    await initAdminLayout({ page: 'agents', title: 'Agent Details' });
+
+    const id = new URLSearchParams(window.location.search).get('id');
+    if (!id) { window.location.href = '/admin/agents.html'; return; }
+
+    await loadAgentDetail(id);
+
+    // Mirror agent-id to second field
+    const a1 = document.getElementById('ad-agent-id');
+    const a2 = document.getElementById('ad-agent-id-2');
+    if (a2 && a1) a2.textContent = a1.textContent;
+
+    document.getElementById('btn-ad-grace')?.addEventListener('click', () => issueGrace(id));
+    document.getElementById('btn-ad-warn')?.addEventListener('click',  () => issueWarning(id));
+
+    // Permissions tab — wire save/reload buttons once (super admin only)
+    if (isSuper()) {
+      document.getElementById('btn-ad-perm-save')?.addEventListener('click',   () => savePermissions(id));
+      document.getElementById('btn-ad-perm-reload')?.addEventListener('click', () => loadPermissions(id));
+    }
+
+    // Tab switching — lazy-load data-heavy tabs on first open
+    let _permsLoaded = false;
+    let _tournamentsLoaded = false;
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+
+        // Lazy-load permissions panel the first time it is opened
+        if (btn.dataset.tab === 'permissions' && isSuper() && !_permsLoaded) {
+          _permsLoaded = true;
+          loadPermissions(id);
+        }
+
+        // Lazy-load tournament history the first time it is opened
+        if (btn.dataset.tab === 'tournaments' && isSuper() && !_tournamentsLoaded) {
+          _tournamentsLoaded = true;
+          loadAgentTournamentHistory(id);
+        }
+      });
+    });
+
+    // Stack history grid on mobile
+    if (window.innerWidth < 768) {
+      document.querySelector('#tab-history > div')?.style.setProperty('grid-template-columns','1fr');
+    }
+  })();
+</script>
+</body>
+</html>

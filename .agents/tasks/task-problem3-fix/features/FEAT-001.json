@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Backend: allow post-release cancellation with correct refunds and fix tournament visibility. Three files change: tournament.py model (status sets), tournament_service.py (remove lock guard), tournaments.py player router (listing filter). Tests in test_room_release_lock.py are rewritten for the new behaviour.",
+  "status": "pending",
+  "steps": [
+    "Step 1 — backend/app/models/tournament.py: Add TournamentStatus.room_released to CANCELLABLE_STATUSES frozenset. Add TournamentStatus.cancelled to VALID_TRANSITIONS[TournamentStatus.room_released] set. Update the module docstring comment from 'CANCELLED — cancelled from OPEN or CONFIRMED' to include ROOM_RELEASED.",
+    "Step 2 — backend/app/services/tournament_service.py: Remove the 'Room-release lock guard' block inside cancel_tournament (the 'if tournament.room_is_released: raise TournamentLockedAfterRoomReleaseError()' block, approximately lines 305-310). Remove TournamentLockedAfterRoomReleaseError from the import list at the top of the file (it is only used in that block). Do NOT change any other logic — the existing CANCELLABLE_STATUSES check, refund loop, idempotency keys, and transaction structure are all correct and unchanged.",
+    "Step 3 — backend/app/routers/tournaments.py: In the list_tournaments function, change the else branch (default ?status=open filter) from 'filter_statuses = [TS.open]' to 'filter_statuses = [TS.open, TS.room_released]'. Add an inline comment explaining both statuses are joinable pre-LIVE.",
+    "Step 4 — backend/app/routers/admin_tournaments.py: Update the cancel_tournament route summary string from 'OPEN|CONFIRMED → CANCELLED' to 'OPEN|CONFIRMED|ROOM_RELEASED → CANCELLED'. Update the docstring to add 'Permitted from OPEN, CONFIRMED, or ROOM_RELEASED status (pre-LIVE only).' on the first line of the body.",
+    "Step 5 — backend/tests/test_room_release_lock.py: DELETE these 6 old tests that assert the old lock behavior: test_cancel_after_room_release_returns_409, test_cancel_after_room_release_status_unchanged, test_cancel_after_room_release_no_wallet_deduction, test_cancel_after_room_release_message_is_clear, test_release_room_cannot_be_reversed_via_cancel, test_status_unchanged_and_room_credentials_intact. ADD 10 new test functions as specified in plan.md item 7: test_cancel_after_room_release_superadmin_succeeds, test_cancel_after_room_release_status_becomes_cancelled, test_cancel_after_room_release_refunds_all_entries, test_cancel_after_room_release_idempotent_no_double_refund, test_cancel_after_room_release_refunds_split_entry, test_cancel_live_tournament_returns_409, test_list_open_includes_room_released, test_list_open_excludes_cancelled, test_cancellable_statuses_includes_room_released, test_cancellable_statuses_excludes_live, test_valid_transitions_room_released_includes_cancelled. All existing A/C/D/E/F/H tests are preserved."
+  ],
+  "acceptance_criteria": [
+    "python -m pytest tests/test_room_release_lock.py -v passes all tests with no failures",
+    "python -m pytest passes all 381+ tests (no regressions)",
+    "POST /api/admin/tournaments/{id}/cancel on a room_released tournament with Super Admin token returns 200 and status='cancelled'",
+    "POST /api/admin/tournaments/{id}/cancel on a room_released tournament refunds all active entries (deposit_amount_used back to deposit_balance, referral_amount_used back to referral_balance)",
+    "Retrying cancel on an already-cancelled tournament returns 409 TOURNAMENT_ALREADY_CANCELLED, not a second refund",
+    "POST /api/admin/tournaments/{id}/cancel on a live tournament returns 409 INVALID_STATUS_TRANSITION",
+    "GET /api/tournaments?status=open returns both open and room_released tournaments",
+    "GET /api/tournaments?status=open does NOT return cancelled tournaments",
+    "FEAT-001 status set to 'completed' in its JSON file with findings recorded"
+  ],
+  "verification": [
+    "cd backend && python -m pytest tests/test_room_release_lock.py -v",
+    "cd backend && python -m pytest"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

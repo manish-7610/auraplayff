@@ -1,0 +1,7 @@
+{
+  "task_id": "task-problem3-fix",
+  "task_description": "AuraPlayFF Problem #3: Allow post-room-release cancellation with full refunds, fix tournament visibility for room_released status in Open listing, add room credential timing message for joined players, and update admin UI cancel controls.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Matches — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    .match-card { background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); transition: background var(--transition), border-color var(--transition); }
+    .match-card:hover { background: var(--color-card-hover); }
+    .match-card.live-card { border-color: var(--color-accent); box-shadow: 0 0 16px var(--color-accent-glow); }
+    .match-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-4); flex-wrap: wrap; }
+    .match-info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-3) var(--space-5); margin-bottom: var(--space-4); }
+    .match-info-cell { display: flex; flex-direction: column; gap: 2px; }
+    .match-info-label { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .5px; }
+    .match-info-value { font-size: var(--text-sm); font-weight: 600; }
+    .match-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+      <div class="page-container">
+
+        <h1 class="page-title">My Matches</h1>
+        <p class="page-subtitle">All your tournament registrations</p>
+
+        <!-- Status filter -->
+        <div class="filters-bar" id="status-filter">
+          <button class="filter-chip active" data-status="all">All</button>
+          <button class="filter-chip" data-status="upcoming">Upcoming</button>
+          <button class="filter-chip" data-status="live">🔴 Live</button>
+          <button class="filter-chip" data-status="completed">Completed</button>
+          <button class="filter-chip" data-status="cancelled">Cancelled</button>
+        </div>
+
+        <div id="matches-list" style="display:flex;flex-direction:column;gap:var(--space-4)"></div>
+        <div id="matches-empty" class="hidden"></div>
+        <div id="matches-error" class="hidden"></div>
+        <div id="pagination"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { requireAuth } from '/assets/js/auth.js';
+    import { initLayout } from '/assets/js/layout.js';
+    import { listTournaments, getRoomCredentials } from '/assets/js/tournaments.js';
+    import { statusBadge, formatDateTime, formatAmount, escapeHtml, emptyState, errorState, skeletonCard, renderPagination, setPageTitle, copyToClipboard } from '/assets/js/ui.js';
+    import { apiGet } from '/assets/js/api.js';
+
+    await requireAuth();
+    await initLayout();
+    setPageTitle('My Matches');
+
+    const LIMIT = 10;
+    let currentFilter = 'all';
+    let currentOffset = 0;
+
+    document.getElementById('status-filter').addEventListener('click', (e) => {
+      const chip = e.target.closest('[data-status]');
+      if (!chip) return;
+      currentFilter = chip.dataset.status;
+      currentOffset = 0;
+      document.querySelectorAll('#status-filter .filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      load();
+    });
+
+    // ── Match card builder ────────────────────────────────────────────
+    function buildMatchCard(t) {
+      const isLive      = t.status === 'live';
+      const isReleased  = t.status === 'room_released';
+      const isDone      = t.status === 'completed' || t.status === 'result_entry';
+      const isCancelled = t.status === 'cancelled';
+
+      const cardClass = isLive ? 'match-card live-card' : 'match-card';
+
+      let actions = `<a href="/tournament-details.html?id=${t.id}" class="btn btn-outline btn-sm">View Details</a>`;
+      if (isReleased || isLive) {
+        actions += `<button class="btn btn-primary btn-sm" onclick="loadRoom('${t.id}', this)">Get Room Credentials</button>`;
+      }
+      if (isDone) {
+        actions += `<a href="/results.html?id=${t.id}" class="btn btn-blue btn-sm">View Results</a>`;
+      }
+
+      const sheetNum = t.sheet_number
+        ? `<div class="match-info-cell"><span class="match-info-label">Sheet #</span><span class="match-info-value text-accent">#${t.sheet_number}</span></div>`
+        : '';
+
+      return `
+        <div class="${cardClass}" id="card-${t.id}">
+          <div class="match-header">
+            <div>
+              <div style="font-size:var(--text-base);font-weight:700;margin-bottom:4px">${escapeHtml(t.title)}</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-muted);font-family:var(--font-mono)">${escapeHtml(t.tournament_code)}</div>
+            </div>
+            ${statusBadge(t.status)}
+          </div>
+          <div class="match-info-grid">
+            ${sheetNum}
+            <div class="match-info-cell">
+              <span class="match-info-label">Entry Fee</span>
+              <span class="match-info-value text-accent">${formatAmount(t.entry_fee)}</span>
+            </div>
+            <div class="match-info-cell">
+              <span class="match-info-label">Scheduled</span>
+              <span class="match-info-value" style="font-size:var(--text-xs)">${formatDateTime(t.scheduled_at)}</span>
+            </div>
+            <div class="match-info-cell">
+              <span class="match-info-label">Players</span>
+              <span class="match-info-value">${t.player_count}/${t.max_players}</span>
+            </div>
+          </div>
+          <div class="match-actions">${actions}</div>
+          <div id="room-${t.id}" class="hidden" style="margin-top:var(--space-4)"></div>
+        </div>`;
+    }
+
+    // ── Room credential loader (inline) ───────────────────────────────
+    window.loadRoom = async (tid, btn) => {
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      const container = document.getElementById(`room-${tid}`);
+      try {
+        const room = await getRoomCredentials(tid);
+        container.innerHTML = `
+          <div class="room-creds">
+            <div class="room-cred-row">
+              <div><div class="room-cred-label">Room ID</div><div class="room-cred-value" id="ri-${tid}">${escapeHtml(room.room_id)}</div></div>
+              <button class="copy-btn" onclick="doCopy('ri-${tid}',this)">Copy</button>
+            </div>
+            <div class="room-cred-row">
+              <div><div class="room-cred-label">Password</div><div class="room-cred-value" id="rp-${tid}">${escapeHtml(room.room_password)}</div></div>
+              <button class="copy-btn" onclick="doCopy('rp-${tid}',this)">Copy</button>
+            </div>
+          </div>
+          <div class="text-xs text-muted" style="margin-top:var(--space-2)">Sheet #${room.sheet_number}</div>`;
+        container.classList.remove('hidden');
+        btn.textContent = 'Credentials Loaded ✓';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline');
+      } catch (err) {
+        container.innerHTML = `<div class="alert alert-warning"><span class="alert-icon">⚠</span>${escapeHtml(err.displayMessage || 'Room not available yet.')}</div>`;
+        container.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Retry';
+      }
+    };
+
+    window.doCopy = async (elId, btn) => {
+      const val = document.getElementById(elId)?.textContent || '';
+      await copyToClipboard(val, btn);
+    };
+
+    // ── Load entries via tournament list (all statuses) ───────────────
+    // We use listTournaments with status=all and filter already_joined=true
+    // since there's no dedicated "my matches" list endpoint.
+    // The backend marks already_joined on each tournament for the current user.
+    async function load() {
+      const list   = document.getElementById('matches-list');
+      const empty  = document.getElementById('matches-empty');
+      const errDiv = document.getElementById('matches-error');
+      const pagDiv = document.getElementById('pagination');
+
+      list.innerHTML = skeletonCard(3);
+      empty.classList.add('hidden');
+      errDiv.classList.add('hidden');
+
+      try {
+        // Fetch with status=all so we get all states
+        const params = { status: 'all', limit: 50 };
+        const data = await listTournaments(params);
+
+        // Filter to only joined tournaments
+        let items = data.items.filter(t => t.already_joined);
+
+        // Apply local status filter
+        if (currentFilter === 'upcoming') {
+          items = items.filter(t => ['open','confirmed','room_released'].includes(t.status));
+        } else if (currentFilter === 'live') {
+          items = items.filter(t => t.status === 'live');
+        } else if (currentFilter === 'completed') {
+          items = items.filter(t => ['completed','result_entry'].includes(t.status));
+        } else if (currentFilter === 'cancelled') {
+          items = items.filter(t => t.status === 'cancelled');
+        }
+
+        // Sort: live first, then by scheduled_at desc
+        items.sort((a, b) => {
+          if (a.status === 'live' && b.status !== 'live') return -1;
+          if (b.status === 'live' && a.status !== 'live') return 1;
+          return new Date(b.scheduled_at) - new Date(a.scheduled_at);
+        });
+
+        list.innerHTML = '';
+        if (!items.length) {
+          empty.innerHTML = emptyState({
+            icon: '🎮', title: 'No matches found',
+            desc: currentFilter === 'all'
+              ? 'You haven\'t joined any tournaments yet.'
+              : `No ${currentFilter} matches found.`,
+            action: `<a href="/tournaments.html" class="btn btn-primary" style="margin-top:var(--space-4)">Browse Tournaments</a>`,
+          });
+          empty.classList.remove('hidden');
+        } else {
+          // We need sheet numbers — fetch individual entries for live/upcoming tournaments
+          const enriched = await Promise.all(items.map(async (t) => {
+            if (['open','confirmed','room_released','live'].includes(t.status)) {
+              try {
+                const entry = await apiGet(`/api/tournaments/${t.id}/my-entry`);
+                return { ...t, sheet_number: entry.sheet_number };
+              } catch { return t; }
+            }
+            return t;
+          }));
+          list.innerHTML = enriched.map(buildMatchCard).join('');
+        }
+
+      } catch (err) {
+        list.innerHTML = '';
+        errDiv.innerHTML = errorState(err.displayMessage || 'Failed to load matches.', load);
+        errDiv.classList.remove('hidden');
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

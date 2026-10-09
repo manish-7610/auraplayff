@@ -1,0 +1,26 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Player UI: show room credential release timing on the tournament detail page. After joining, the success modal and entry panel tell the player when Room ID/Password will become available (scheduled_at minus 10 minutes, formatted in IST). Also adds cancelled/refunded notice in the entry panel. Independent of FEAT-001 and FEAT-002.",
+  "status": "pending",
+  "steps": [
+    "Step 1 — frontend/tournament-details.html, confirm-join-btn click handler: After the success-breakdown innerHTML is set, compute credentialReleaseTime = new Date(new Date(tournament.scheduled_at).getTime() - 10 * 60 * 1000).toISOString(). Append a new join-confirm-row to success-breakdown showing '🔐 Room Credentials Available' label and the formatted release time using formatDateTime(credentialReleaseTime) on the right, with a sub-line '10 min before {formatDateTime(tournament.scheduled_at)}'. Use the existing join-confirm-row CSS class. The row should have a border-top style to visually separate it from payment details.",
+    "Step 2 — frontend/tournament-details.html, showEntryPanel() function: After the existing entry-details innerHTML is set, add a conditional block. When tournament.status === 'open' or tournament.status === 'confirmed' (room not yet released), compute releaseTime the same way (-10 min from scheduled_at) and append an info-row to entry-details showing '🔐 Room Credentials' label and 'Available {formatDateTime(releaseTime)}' value with sub-text '10 min before start'. Use the existing info-row CSS class.",
+    "Step 3 — frontend/tournament-details.html, showEntryPanel() function: Add a refunded/cancelled notice. After the existing detail rows, if myEntry.status === 'refunded', append an alert-warning div inside entry-panel showing 'Tournament Cancelled — Refunded' heading and 'Your entry fee has been refunded to your wallet.' sub-text. Use alert alert-warning classes consistent with the existing cancelled-panel pattern."
+  ],
+  "acceptance_criteria": [
+    "After joining a tournament, the success modal shows a row labelled '🔐 Room Credentials Available' with a time that is 10 minutes before tournament.scheduled_at, formatted in IST (e.g. '07:50 PM' for an 08:00 PM tournament)",
+    "On the tournament detail page, when a player has an active entry and status is 'open' or 'confirmed', the entry panel shows a timing row with the credential release time",
+    "On the tournament detail page, when a player has an active entry and status is 'room_released', the existing room credentials section shows actual credentials (no timing notice needed — credentials are already shown)",
+    "On the tournament detail page, when a player's entry status is 'refunded', the entry panel shows a 'Tournament Cancelled — Refunded' notice",
+    "The release time is correctly computed as scheduled_at minus 10 minutes",
+    "The formatDateTime utility is used for IST formatting (not manual timezone math)"
+  ],
+  "verification": [
+    "Manual browser verification: Join an open tournament. After confirming, the success modal must show the credential timing row.",
+    "Manual browser verification: Visit tournament detail page when already joined and status is open or confirmed. Entry panel must show timing notice.",
+    "Manual browser verification: If a joined tournament is cancelled, the entry panel must show the refunded notice."
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

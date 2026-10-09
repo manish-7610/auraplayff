@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: var(--space-4); }
+    .auth-container { width: 100%; max-width: 400px; }
+    .auth-logo { text-align: center; margin-bottom: var(--space-8); }
+    .auth-logo-text { font-size: var(--text-2xl); font-weight: 900; background: linear-gradient(135deg, var(--color-accent), var(--color-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; }
+    .auth-logo-tagline { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-1); }
+    .auth-card { background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-8); box-shadow: var(--shadow-card); }
+    .auth-title { font-size: var(--text-xl); font-weight: 800; margin-bottom: var(--space-2); }
+    .auth-subtitle { font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--space-6); }
+    .auth-footer { text-align: center; margin-top: var(--space-5); font-size: var(--text-sm); color: var(--color-text-muted); }
+    .auth-footer a { color: var(--color-accent); }
+    #form-error { display: none; }
+  </style>
+</head>
+<body>
+  <div class="auth-container fade-in">
+    <div class="auth-logo">
+      <div class="auth-logo-text">AuraPlayFF</div>
+      <div class="auth-logo-tagline">Free Fire Tournaments</div>
+    </div>
+
+    <div class="auth-card">
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-subtitle">Sign in to your account to continue</p>
+
+      <div id="form-error" class="alert alert-error mb-4">
+        <span class="alert-icon">✕</span>
+        <span id="form-error-msg"></span>
+      </div>
+
+      <form id="login-form" class="form-stack" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input class="form-input" id="username" type="text" name="username"
+                 placeholder="your_username" autocomplete="username"
+                 autocapitalize="none" spellcheck="false" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" id="password" type="password" name="password"
+                 placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn">
+          Sign In
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Don't have an account? <a href="/register.html">Register here</a>
+      </div>
+      <div class="auth-footer" style="margin-top:var(--space-2)">
+        <a href="/index.html" style="color:var(--color-text-muted)">← Back to home</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { login, checkSession } from '/assets/js/auth.js';
+    import { toastError, setButtonLoading, showFieldError, clearAllErrors } from '/assets/js/ui.js';
+
+    // If already logged in, redirect
+    (async () => {
+      const ok = await checkSession();
+      if (ok) {
+        const params = new URLSearchParams(window.location.search);
+        window.location.href = params.get('next') || '/index.html';
+      }
+    })();
+
+    const form    = document.getElementById('login-form');
+    const btn     = document.getElementById('submit-btn');
+    const errBox  = document.getElementById('form-error');
+    const errMsg  = document.getElementById('form-error-msg');
+
+    function showFormError(msg) {
+      errMsg.textContent = msg;
+      errBox.style.display = 'flex';
+    }
+    function hideFormError() { errBox.style.display = 'none'; }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideFormError();
+      clearAllErrors(form);
+
+      const username = form.username.value.trim();
+      const password = form.password.value;
+
+      if (!username) { showFieldError(form.username, 'Username is required.'); return; }
+      if (!password) { showFieldError(form.password, 'Password is required.'); return; }
+
+      setButtonLoading(btn, true);
+      try {
+        await login({ username, password });
+
+        // ── Onboarding check ─────────────────────────────────────────────────
+        // After a successful login, silently fetch the player's profile to
+        // check whether ff_name is set.  If it is missing, redirect to the
+        // mandatory onboarding screen on the profile page instead of the
+        // normal destination.
+        // This check is best-effort: if /api/users/me fails for any reason
+        // (network hiccup, unexpected error), we fall through to the normal
+        // redirect so login is never completely blocked.
+        const params = new URLSearchParams(window.location.search);
+        try {
+          const { apiGet } = await import('/assets/js/api.js');
+          const me = await apiGet('/api/users/me');
+          if (!me.ff_name) {
+            // Player has no Free Fire name — send to mandatory onboarding.
+            // Preserve the original ?next destination so after onboarding
+            // completes the player lands where they intended.
+            const dest = params.get('next') || '/index.html';
+            window.location.href = `/profile.html?onboarding=1&next=${encodeURIComponent(dest)}`;
+            return;
+          }
+        } catch (_) {
+          // /api/users/me failed — fall through to normal redirect
+        }
+
+        window.location.href = params.get('next') || '/index.html';
+      } catch (err) {
+        setButtonLoading(btn, false);
+        if (err.status === 429) {
+          showFormError('Too many login attempts. Please wait a minute and try again.');
+        } else if (err.status === 401 || err.status === 400) {
+          showFormError('Incorrect username or password.');
+        } else {
+          showFormError(err.displayMessage || 'Login failed. Please try again.');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

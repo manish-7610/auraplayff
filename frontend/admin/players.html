@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Players — AuraPlayFF Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin-theme.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <div class="admin-main">
+    <div class="admin-topbar"></div>
+    <main class="admin-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Players</h1>
+          <p class="page-subtitle">Search, view, and manage player accounts</p>
+        </div>
+      </div>
+
+      <div class="filters-bar">
+        <input type="text" id="player-search" class="form-input search-input" placeholder="Search username or FF UID…" maxlength="60">
+        <select class="form-select" id="filter-player-status">
+          <option value="">All Players</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="banned">Banned</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="btn-player-reset">✕ Reset</button>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh">↺ Refresh</button>
+      </div>
+
+      <div class="card" style="padding:0">
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Username</th>
+              <th>FF UID</th>
+              <th>Status</th>
+              <th style="text-align:right">Matches</th>
+              <th style="text-align:right">Wins</th>
+              <th>Winnings</th>
+              <th>Joined</th>
+            </tr></thead>
+            <tbody id="players-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="players-pagination"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Player Detail Modal -->
+<div class="modal-overlay" id="modal-player">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <span class="modal-title" id="pm-username">Player</span>
+      <button class="modal-close" id="btn-pm-close">✕</button>
+    </div>
+    <div id="pm-body">
+      <div style="text-align:center;padding:40px"><div class="loading-spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/admin/admin-config.js"></script>
+<script type="module">
+  import { requireAdminSession } from '/assets/js/admin/admin-auth.js';
+  import { initAdminLayout }    from '/assets/js/admin/admin-layout.js';
+  import { setupModalClose }    from '/assets/js/admin/admin-ui.js';
+  import { loadPlayerList, setupPlayerFilters } from '/assets/js/admin/admin-players.js';
+
+  (async () => {
+    const profile = await requireAdminSession();
+    if (!profile) return;
+    await initAdminLayout({ page: 'players', title: 'Players' });
+
+    setupPlayerFilters();
+    await loadPlayerList();
+
+    document.getElementById('btn-refresh').addEventListener('click', loadPlayerList);
+    document.getElementById('btn-pm-close').addEventListener('click', () => {
+      document.getElementById('modal-player').classList.remove('open');
+    });
+    setupModalClose('modal-player');
+  })();
+</script>
+</body>
+</html>

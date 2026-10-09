@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications — AuraPlayFF Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin-theme.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <div class="admin-main">
+    <div class="admin-topbar"></div>
+    <main class="admin-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Notifications</h1>
+          <p class="page-subtitle" id="notif-subtitle">Staff notifications</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" id="btn-unread-only">Unread Only</button>
+          <button class="btn btn-secondary btn-sm" id="btn-mark-all-read">✓ Mark All Read</button>
+          <button class="btn btn-secondary btn-sm" id="btn-notif-refresh">↺</button>
+        </div>
+      </div>
+
+      <div id="notif-list" style="display:flex;flex-direction:column;gap:8px">
+        <div style="text-align:center;padding:40px"><div class="loading-spinner"></div></div>
+      </div>
+
+      <div class="pagination" id="notif-pagination" style="background:var(--color-card);border-radius:var(--radius-lg);margin-top:8px"></div>
+
+    </main>
+  </div>
+</div>
+
+<script src="/assets/js/admin/admin-config.js"></script>
+<script type="module">
+  import { requireAdminSession }             from '/assets/js/admin/admin-auth.js';
+  import { adminGet, adminPost }             from '/assets/js/admin/admin-api.js';
+  import { initAdminLayout }                 from '/assets/js/admin/admin-layout.js';
+  import { showToast, fmtRelative, escHtml, renderPagination } from '/assets/js/admin/admin-ui.js';
+
+  const LIMIT  = 30;
+  let offset   = 0;
+  let unreadOnly = false;
+
+  const NOTIF_ICONS = {
+    deposit:      '💰',
+    withdrawal:   '💸',
+    tournament:   '🏆',
+    result:       '🎯',
+    agent:        '🤖',
+    performance:  '📊',
+    salary:       '💵',
+    scheduler:    '⚙️',
+    system:       '🔔',
+  };
+
+  function iconFor(type) {
+    const t = (type || '').toLowerCase();
+    for (const [k, v] of Object.entries(NOTIF_ICONS)) {
+      if (t.includes(k)) return v;
+    }
+    return '🔔';
+  }
+
+  async function loadNotifications() {
+    document.getElementById('notif-list').innerHTML =
+      '<div style="text-align:center;padding:40px"><div class="loading-spinner"></div></div>';
+    try {
+      const params = { limit: LIMIT, offset };
+      if (unreadOnly) params.unread_only = true;
+      const data = await adminGet('/api/staff/notifications', params);
+      const items = data.items || data || [];
+      const total = data.total || items.length;
+
+      if (!items.length) {
+        document.getElementById('notif-list').innerHTML =
+          '<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-title">No notifications</div></div>';
+        renderPagination('notif-pagination', 0, LIMIT, 0, () => {});
+        return;
+      }
+
+      document.getElementById('notif-list').innerHTML = items.map(n => `
+        <div class="card" style="padding:14px 16px;display:flex;align-items:flex-start;gap:14px;opacity:${n.is_read ? '.6' : '1'}" id="notif-${escHtml(n.id || n.notification_id)}">
+          <span style="font-size:24px;flex-shrink:0">${iconFor(n.notification_type)}</span>
+          <div style="flex:1;overflow:hidden">
+            <div style="font-weight:${n.is_read ? '400' : '700'};font-size:14px;color:var(--color-text)">${escHtml(n.title || '')}</div>
+            <div style="font-size:13px;color:var(--color-text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(n.message || '')}</div>
+            <div style="font-size:11px;color:var(--color-text-dim);margin-top:4px">${fmtRelative(n.created_at)} · ${escHtml(n.notification_type || '')}</div>
+          </div>
+          ${!n.is_read ? `<button class="btn btn-ghost btn-sm" data-read-id="${escHtml(n.id || n.notification_id)}" style="flex-shrink:0">Mark Read</button>` : ''}
+        </div>`).join('');
+
+      // Mark read handlers
+      document.querySelectorAll('[data-read-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          try {
+            await adminPost(`/api/staff/notifications/${btn.dataset.readId}/read`, {});
+            btn.closest('.card').style.opacity = '0.6';
+            btn.remove();
+          } catch (err) { showToast(err.displayMessage || 'Failed', 'error'); }
+        });
+      });
+
+      renderPagination('notif-pagination', total, LIMIT, offset, off => {
+        offset = off; loadNotifications();
+      });
+    } catch (err) {
+      document.getElementById('notif-list').innerHTML =
+        `<div class="alert alert-error">⚠ ${escHtml(err.displayMessage || 'Load failed')}</div>`;
+    }
+  }
+
+  (async () => {
+    const profile = await requireAdminSession();
+    if (!profile) return;
+    await initAdminLayout({ page: 'notifications', title: 'Notifications' });
+    await loadNotifications();
+
+    document.getElementById('btn-notif-refresh').addEventListener('click', loadNotifications);
+
+    document.getElementById('btn-unread-only').addEventListener('click', function() {
+      unreadOnly = !unreadOnly;
+      this.textContent = unreadOnly ? 'All' : 'Unread Only';
+      this.classList.toggle('btn-primary', unreadOnly);
+      this.classList.toggle('btn-ghost', !unreadOnly);
+      offset = 0;
+      loadNotifications();
+    });
+
+    document.getElementById('btn-mark-all-read').addEventListener('click', async () => {
+      try {
+        await adminPost('/api/staff/notifications/read-all', {});
+        showToast('All notifications marked as read', 'success');
+        loadNotifications();
+      } catch (err) { showToast(err.displayMessage || 'Failed', 'error'); }
+    });
+  })();
+</script>
+</body>
+</html>

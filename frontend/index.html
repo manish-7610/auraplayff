@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraPlayFF — Free Fire Tournaments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+
+      <!-- Hero -->
+      <section class="hero" id="hero-section">
+        <div style="max-width:600px;margin:0 auto">
+          <h1 class="hero-title">Compete.<br><span class="accent">Win Real Money.</span></h1>
+          <p class="hero-subtitle">Join Free Fire solo tournaments, climb the leaderboard, and cash out your winnings instantly.</p>
+          <div class="hero-actions" id="hero-actions">
+            <a href="/tournaments.html" class="btn btn-primary btn-lg">Browse Tournaments</a>
+            <a href="/register.html" class="btn btn-outline btn-lg" id="hero-register-btn">Register Free</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats strip -->
+      <div class="stats-strip" id="stats-strip">
+        <div class="stat-item">
+          <div class="stat-value" id="stat-live">—</div>
+          <div class="stat-label">Live Now</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-open">—</div>
+          <div class="stat-label">Open</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-today">—</div>
+          <div class="stat-label">Completed Today</div>
+        </div>
+      </div>
+
+      <div class="page-container">
+
+        <!-- Active / Open Tournaments -->
+        <section style="margin-bottom:var(--space-10)">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="section-title" style="margin:0">Open Tournaments</h2>
+            <a href="/tournaments.html" class="btn btn-ghost btn-sm">View all →</a>
+          </div>
+          <div id="open-tournaments" class="tournament-grid">
+            <!-- skeleton -->
+            <div class="card"><span class="skeleton skeleton-line medium mb-4"></span><span class="skeleton skeleton-line short"></span><span class="skeleton skeleton-line long" style="margin-top:8px"></span></div>
+            <div class="card"><span class="skeleton skeleton-line medium mb-4"></span><span class="skeleton skeleton-line short"></span><span class="skeleton skeleton-line long" style="margin-top:8px"></span></div>
+            <div class="card"><span class="skeleton skeleton-line medium mb-4"></span><span class="skeleton skeleton-line short"></span><span class="skeleton skeleton-line long" style="margin-top:8px"></span></div>
+          </div>
+          <div id="open-tournaments-empty" class="hidden"></div>
+        </section>
+
+        <!-- Live Tournaments -->
+        <section style="margin-bottom:var(--space-10)" id="live-section">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="section-title" style="margin:0">🔴 Live Right Now</h2>
+            <a href="/tournaments.html?status=live" class="btn btn-ghost btn-sm">View all →</a>
+          </div>
+          <div id="live-tournaments" class="tournament-grid"></div>
+          <div id="live-empty" class="hidden">
+            <p class="text-muted text-sm" style="padding:var(--space-4) 0">No live tournaments at the moment.</p>
+          </div>
+        </section>
+
+        <!-- Leaderboard preview -->
+        <section style="margin-bottom:var(--space-10)">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="section-title" style="margin:0">🏆 Top Players</h2>
+            <a href="/leaderboard.html" class="btn btn-ghost btn-sm">Full leaderboard →</a>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Wins</th>
+                    <th>Winnings</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-body">
+                  <tr><td colspan="4"><span class="skeleton skeleton-line long" style="display:block;margin:8px 16px"></span></td></tr>
+                  <tr><td colspan="4"><span class="skeleton skeleton-line medium" style="display:block;margin:8px 16px"></span></td></tr>
+                  <tr><td colspan="4"><span class="skeleton skeleton-line long" style="display:block;margin:8px 16px"></span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Referral CTA -->
+        <section id="referral-cta" class="card" style="background:linear-gradient(135deg,rgba(255,107,53,.1),rgba(78,158,255,.08));border-color:var(--color-accent);margin-bottom:var(--space-10)">
+          <div style="display:flex;align-items:center;gap:var(--space-5);flex-wrap:wrap">
+            <div style="font-size:48px">🤝</div>
+            <div style="flex:1;min-width:200px">
+              <div style="font-size:var(--text-lg);font-weight:800;margin-bottom:var(--space-2)">Refer friends, earn ₹20</div>
+              <div style="font-size:var(--text-sm);color:var(--color-text-muted)">Both you and your friend earn ₹20 referral bonus when they complete their first tournament.</div>
+            </div>
+            <a href="/referral.html" class="btn btn-primary" id="referral-cta-btn">Share Referral</a>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { checkSession, logout } from '/assets/js/auth.js';
+    import { initLayout, setSidebarUser } from '/assets/js/layout.js';
+    import { listTournaments, getTournamentLeaderboard, getPlayerLeaderboard, isJoinable, slotPercentage } from '/assets/js/tournaments.js';
+    import { statusBadge, formatDateTime, formatAmount, escapeHtml, emptyState, startCountdown } from '/assets/js/ui.js';
+
+    const loggedIn = await checkSession();
+    await initLayout({ requiresAuth: false });
+
+    // Update hero CTA based on login state
+    if (loggedIn) {
+      document.getElementById('hero-register-btn').textContent = 'My Matches';
+      document.getElementById('hero-register-btn').href = '/my-matches.html';
+      document.getElementById('referral-cta-btn').href = '/referral.html';
+    }
+
+    // ── Tournament card builder ──────────────────────────────────────
+    function buildTournamentCard(t) {
+      const pct = slotPercentage(t);
+      const joinable = isJoinable(t);
+      const ctaBtn = loggedIn && joinable
+        ? `<a href="/tournament-details.html?id=${t.id}" class="btn btn-primary btn-sm">Join</a>`
+        : t.already_joined
+          ? `<span class="badge badge-confirmed">Joined</span>`
+          : `<a href="/tournament-details.html?id=${t.id}" class="btn btn-outline btn-sm">View</a>`;
+
+      const schedEl = `<span id="cd-${t.id}" data-target="${t.scheduled_at}"></span>`;
+
+      return `
+        <a href="/tournament-details.html?id=${t.id}" class="tournament-card card-hover" style="text-decoration:none;color:inherit">
+          <div class="tournament-card-header">
+            <div>
+              <div class="tournament-title">${escapeHtml(t.title)}</div>
+              <div class="tournament-code">${escapeHtml(t.tournament_code)}</div>
+            </div>
+            ${statusBadge(t.status)}
+          </div>
+          <div class="tournament-meta">
+            <div class="tournament-meta-item">
+              <span class="tournament-meta-label">Entry Fee</span>
+              <span class="tournament-meta-value text-accent">${formatAmount(t.entry_fee)}</span>
+            </div>
+            <div class="tournament-meta-item">
+              <span class="tournament-meta-label">Mode</span>
+              <span class="tournament-meta-value">${escapeHtml(t.game?.replace('_',' '))} Solo</span>
+            </div>
+            <div class="tournament-meta-item">
+              <span class="tournament-meta-label">Scheduled</span>
+              <span class="tournament-meta-value" style="font-size:var(--text-xs)">${formatDateTime(t.scheduled_at)}</span>
+            </div>
+            <div class="tournament-meta-item">
+              <span class="tournament-meta-label">Starts in</span>
+              <span class="tournament-meta-value" id="cd-wrap-${t.id}" style="font-size:var(--text-xs);color:var(--color-warning)">—</span>
+            </div>
+          </div>
+          <div class="tournament-card-footer">
+            <div class="player-bar">
+              <div class="player-bar-track"><div class="player-bar-fill" style="width:${pct}%"></div></div>
+              <span class="player-count-text">${t.player_count}/${t.max_players}</span>
+            </div>
+            ${ctaBtn}
+          </div>
+        </a>`;
+    }
+
+    // ── Load open tournaments ────────────────────────────────────────
+    async function loadOpenTournaments() {
+      try {
+        const data = await listTournaments({ status: 'open', limit: 6 });
+        const container = document.getElementById('open-tournaments');
+        if (!data.items.length) {
+          container.innerHTML = '';
+          document.getElementById('open-tournaments-empty').innerHTML = emptyState({
+            icon: '🏟️', title: 'No open tournaments',
+            desc: 'Check back soon — new tournaments are created daily.',
+            action: `<a href="/tournaments.html" class="btn btn-outline" style="margin-top:var(--space-3)">Browse All</a>`
+          });
+          document.getElementById('open-tournaments-empty').classList.remove('hidden');
+        } else {
+          container.innerHTML = data.items.map(buildTournamentCard).join('');
+          // Start countdowns
+          data.items.forEach(t => {
+            const el = document.getElementById(`cd-wrap-${t.id}`);
+            if (el && t.status === 'open') startCountdown(el, t.scheduled_at);
+          });
+        }
+        // Update stat
+        document.getElementById('stat-open').textContent = data.total;
+      } catch {
+        document.getElementById('open-tournaments').innerHTML = '<div class="text-muted text-sm">Unable to load tournaments.</div>';
+      }
+    }
+
+    // ── Load live tournaments ────────────────────────────────────────
+    async function loadLiveTournaments() {
+      try {
+        const data = await listTournaments({ status: 'live', limit: 3 });
+        const container = document.getElementById('live-tournaments');
+        if (!data.items.length) {
+          document.getElementById('live-section').querySelector('#live-empty').classList.remove('hidden');
+          container.style.display = 'none';
+        } else {
+          container.innerHTML = data.items.map(buildTournamentCard).join('');
+        }
+        document.getElementById('stat-live').textContent = data.total;
+      } catch { /* silent */ }
+    }
+
+    // ── Load leaderboard preview ─────────────────────────────────────
+    async function loadLeaderboard() {
+      try {
+        const data = await getPlayerLeaderboard({ sort_by: 'wins', limit: 5 });
+        const tbody = document.getElementById('leaderboard-body');
+        if (!data.items.length) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding:var(--space-6)">No data yet</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.items.map((p, i) => {
+          const rank = i + 1;
+          const cls  = rank <= 3 ? `rank-${rank}` : 'rank-other';
+          // display_name = ff_name when set, else username (resolved by backend)
+          const displayName = p.display_name || p.username;
+          const playerCell  = displayName !== p.username
+            ? `<strong>${escapeHtml(displayName)}</strong>
+               <div style="font-size:11px;color:var(--color-text-muted);margin-top:1px">${escapeHtml(p.username)}</div>`
+            : `<strong>${escapeHtml(displayName)}</strong>`;
+          return `
+            <tr>
+              <td><span class="rank-badge ${cls}">${rank}</span></td>
+              <td>${playerCell}</td>
+              <td class="text-mono">${p.total_wins}</td>
+              <td class="text-accent text-mono">${formatAmount(p.total_winnings)}</td>
+            </tr>`;
+        }).join('');
+      } catch { /* silent */ }
+    }
+
+    // ── Load completed today count ───────────────────────────────────
+    async function loadCompletedToday() {
+      try {
+        const data = await listTournaments({ status: 'completed', limit: 1 });
+        // approximate: use total completed from all-time for now
+        document.getElementById('stat-today').textContent = data.total ?? '—';
+      } catch { /* silent */ }
+    }
+
+    // Kick off all loads in parallel
+    await Promise.all([
+      loadOpenTournaments(),
+      loadLiveTournaments(),
+      loadLeaderboard(),
+      loadCompletedToday(),
+    ]);
+  </script>
+</body>
+</html>

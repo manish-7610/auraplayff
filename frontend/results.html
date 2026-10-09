@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Results — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    .my-result-card { background: linear-gradient(135deg, rgba(255,107,53,.1), rgba(78,158,255,.06)); border: 1px solid var(--color-accent); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-6); }
+    .proof-thumb { width: 80px; height: 80px; border-radius: var(--radius-md); object-fit: cover; background: var(--color-bg-3); border: 1px solid var(--color-border); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+      <div class="page-container">
+
+        <a href="/my-matches.html" class="btn btn-ghost btn-sm" style="margin-bottom:var(--space-4)">← My Matches</a>
+
+        <div id="loading-state">
+          <div class="card mb-4"><span class="skeleton skeleton-line medium" style="height:24px"></span></div>
+          <div class="card"><span class="skeleton skeleton-line long mb-4"></span><span class="skeleton skeleton-line medium"></span></div>
+        </div>
+        <div id="error-state" class="hidden"></div>
+        <div id="content" class="hidden">
+
+          <!-- Tournament header -->
+          <div class="mb-4">
+            <h1 class="page-title" id="t-title"></h1>
+            <div class="flex items-center gap-3">
+              <span class="text-muted text-sm text-mono" id="t-code"></span>
+              <span id="t-status"></span>
+            </div>
+          </div>
+
+          <!-- My result card (if enrolled) -->
+          <div id="my-result-section" class="hidden">
+            <h2 class="section-title">Your Result</h2>
+            <div class="my-result-card" id="my-result-card"></div>
+          </div>
+
+          <!-- Screenshot upload (after completion, within 15 min window) -->
+          <div id="screenshot-section" class="hidden">
+            <div class="card mb-6">
+              <h3 class="section-title mb-2">📸 Upload Match Screenshot</h3>
+              <p class="text-muted text-sm mb-4">Upload proof of your result. Max 2 screenshots. JPEG or PNG, max 5 MB each.</p>
+              <div id="upload-deadline-notice" class="alert alert-warning mb-4" style="display:none">
+                <span class="alert-icon">⚠</span>
+                <span id="upload-deadline-text"></span>
+              </div>
+              <div id="existing-proofs" class="mb-4" style="display:flex;gap:var(--space-3);flex-wrap:wrap"></div>
+              <div id="upload-zone" class="upload-zone" id="upload-area">
+                <div class="upload-zone-icon">📷</div>
+                <div class="upload-zone-title">Drag & drop or click to upload</div>
+                <div class="upload-zone-desc">JPEG or PNG, max 5 MB</div>
+                <input type="file" id="file-input" accept="image/jpeg,image/png" style="display:none">
+              </div>
+              <div id="upload-preview" class="hidden" style="margin-top:var(--space-4)">
+                <div style="display:flex;align-items:center;gap:var(--space-3)">
+                  <div class="proof-thumb" id="preview-thumb">📷</div>
+                  <div style="flex:1;min-width:0">
+                    <div id="preview-name" class="text-sm fw-700 mb-2"></div>
+                    <div id="preview-size" class="text-xs text-muted mb-3"></div>
+                    <button class="btn btn-primary btn-sm" id="upload-btn">Upload Screenshot</button>
+                    <button class="btn btn-ghost btn-sm" id="cancel-upload-btn">Cancel</button>
+                  </div>
+                </div>
+                <div id="upload-progress" class="hidden" style="margin-top:var(--space-3)">
+                  <div style="height:4px;background:var(--color-border);border-radius:2px;overflow:hidden">
+                    <div id="progress-bar" style="height:100%;background:var(--color-accent);width:0;transition:width .3s"></div>
+                  </div>
+                  <div class="text-xs text-muted mt-2" id="upload-status-text"></div>
+                </div>
+              </div>
+              <div id="upload-result" class="hidden mt-4"></div>
+            </div>
+          </div>
+
+          <!-- Full leaderboard -->
+          <div>
+            <h2 class="section-title mb-4">🏆 Tournament Results</h2>
+            <div id="results-pending" class="hidden">
+              <div class="alert alert-info">
+                <span class="alert-icon">⏳</span>
+                <span>Results are being entered. Check back soon.</span>
+              </div>
+            </div>
+            <div id="results-table-wrap" class="card" style="padding:0;overflow:hidden">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Player</th>
+                      <th>Kills</th>
+                      <th>Prize</th>
+                      <th>Kill Reward</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="results-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { requireAuth } from '/assets/js/auth.js';
+    import { initLayout } from '/assets/js/layout.js';
+    import { getTournament, getTournamentResults, getMyResult } from '/assets/js/tournaments.js';
+    import { statusBadge, formatDateTime, formatAmount, escapeHtml, errorState, setPageTitle, toastSuccess } from '/assets/js/ui.js';
+
+    await requireAuth();
+    await initLayout();
+
+    const params = new URLSearchParams(window.location.search);
+    const tid = params.get('id');
+    if (!tid) window.location.href = '/my-matches.html';
+
+    let tournament = null;
+    let myResult   = null;
+
+    async function load() {
+      const loadEl   = document.getElementById('loading-state');
+      const errorEl  = document.getElementById('error-state');
+      const contentEl= document.getElementById('content');
+
+      try {
+        const [t, results] = await Promise.all([
+          getTournament(tid),
+          getTournamentResults(tid),
+        ]);
+        tournament = t;
+        setPageTitle(`Results — ${t.title}`);
+
+        document.getElementById('t-title').textContent = t.title;
+        document.getElementById('t-code').textContent  = t.tournament_code;
+        document.getElementById('t-status').innerHTML  = statusBadge(t.status);
+
+        // Try fetching my result
+        try { myResult = await getMyResult(tid); } catch {}
+
+        renderMyResult();
+        renderResultsTable(results.results);
+
+        loadEl.classList.add('hidden');
+        contentEl.classList.remove('hidden');
+      } catch (err) {
+        loadEl.classList.add('hidden');
+        errorEl.innerHTML = errorState(err.displayMessage || 'Failed to load results.', load);
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    function renderMyResult() {
+      if (!myResult) return;
+      const sec = document.getElementById('my-result-section');
+      sec.classList.remove('hidden');
+
+      const finalized = myResult.prize_amount !== null;
+      const card = document.getElementById('my-result-card');
+      card.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:var(--space-4) var(--space-6);margin-bottom:var(--space-4)">
+          <div>
+            <div class="text-xs text-muted">Placement</div>
+            <div style="font-size:var(--text-2xl);font-weight:900;color:var(--color-accent)">#${myResult.placement}</div>
+          </div>
+          <div>
+            <div class="text-xs text-muted">Kills</div>
+            <div style="font-size:var(--text-xl);font-weight:800">${myResult.kills}</div>
+          </div>
+          <div>
+            <div class="text-xs text-muted">Prize</div>
+            <div style="font-size:var(--text-lg);font-weight:700;color:var(--color-success)">${finalized ? formatAmount(myResult.prize_amount) : '—'}</div>
+          </div>
+          <div>
+            <div class="text-xs text-muted">Kill Reward</div>
+            <div style="font-size:var(--text-lg);font-weight:700;color:var(--color-blue)">${finalized ? formatAmount(myResult.kill_reward_amount) : '—'}</div>
+          </div>
+          <div>
+            <div class="text-xs text-muted">Total Payout</div>
+            <div style="font-size:var(--text-xl);font-weight:800;color:var(--color-success)">${finalized ? formatAmount(myResult.total_payout) : '—'}</div>
+          </div>
+        </div>
+        ${finalized && myResult.kill_reward_breakdown ? `<div class="text-xs text-muted">Kill breakdown: ${escapeHtml(myResult.kill_reward_breakdown)}</div>` : ''}
+        ${!finalized ? `<div class="alert alert-info" style="margin-top:var(--space-3)"><span class="alert-icon">⏳</span>Payout pending verification</div>` : ''}`;
+    }
+
+    function renderResultsTable(results) {
+      const tbody = document.getElementById('results-tbody');
+      if (!results.length) {
+        // Only show "being entered" message if we're still in the result_entry phase
+        if (!tournament || tournament.status === 'result_entry') {
+          document.getElementById('results-pending').classList.remove('hidden');
+        } else {
+          document.getElementById('results-pending').classList.remove('hidden');
+          // Update message for completed tournaments with no results recorded
+          const msgEl = document.querySelector('#results-pending .alert span:last-child');
+          if (msgEl && tournament.status === 'completed') {
+            msgEl.textContent = 'No results have been recorded for this tournament.';
+          }
+        }
+        document.getElementById('results-table-wrap').style.display = 'none';
+        return;
+      }
+
+      tbody.innerHTML = results.map(r => {
+        const rank = r.placement;
+        const cls  = rank <= 3 ? `rank-${rank}` : 'rank-other';
+        const finalized = r.prize_amount !== null;
+        return `
+          <tr ${myResult?.result_id === r.result_id ? 'style="background:rgba(255,107,53,.06)"' : ''}>
+            <td><span class="rank-badge ${cls}">${rank}</span></td>
+            <td>
+              ${myResult?.result_id === r.result_id ? '<strong>(You)</strong>' : `#${rank}`}
+              <span class="text-xs text-muted">${statusBadge(r.result_status)}</span>
+            </td>
+            <td class="text-mono">${r.kills}</td>
+            <td class="text-success text-mono">${finalized ? formatAmount(r.prize_amount) : '—'}</td>
+            <td class="text-blue text-mono">${finalized ? formatAmount(r.kill_reward_amount) : '—'}</td>
+            <td class="text-success fw-700 text-mono">${finalized ? formatAmount(r.total_payout) : '—'}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    load();
+  </script>
+</body>
+</html>

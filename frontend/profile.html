@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    .profile-hero {
+      background: linear-gradient(135deg, var(--color-bg-2), var(--color-bg-3));
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8) var(--space-6);
+      display: flex;
+      align-items: center;
+      gap: var(--space-6);
+      margin-bottom: var(--space-6);
+      flex-wrap: wrap;
+    }
+    .profile-avatar-large {
+      width: 80px; height: 80px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, var(--color-accent), var(--color-blue));
+      display: flex; align-items: center; justify-content: center;
+      font-size: var(--text-2xl); font-weight: 900; color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 0 24px var(--color-accent-glow);
+    }
+    .profile-info { flex: 1; min-width: 160px; }
+    .profile-display-name { font-size: var(--text-xl); font-weight: 900; margin-bottom: 2px; }
+    .profile-login-username {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      margin-bottom: 4px;
+    }
+    .profile-ff-uid   { font-size: var(--text-sm); color: var(--color-text-muted); font-family: var(--font-mono); }
+    .profile-joined   { font-size: var(--text-xs); color: var(--color-text-dim); margin-top: 4px; }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--color-border);
+      gap: var(--space-3);
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size: var(--text-sm); color: var(--color-text-muted); }
+    .info-value { font-size: var(--text-sm); font-weight: 600; text-align: right; word-break: break-all; }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+    }
+    .stat-tile {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      text-align: center;
+    }
+    .stat-tile-value { font-size: var(--text-xl); font-weight: 900; font-family: var(--font-mono); margin-bottom: 4px; }
+    .stat-tile-label { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .5px; }
+    .security-note {
+      background: rgba(255,107,53,.06);
+      border: 1px solid rgba(255,107,53,.2);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-6);
+    }
+
+    /* ── Free Fire Name edit card ──────────────────────────────────── */
+    .ff-name-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-6);
+    }
+    .ff-name-card-title {
+      font-size: var(--text-base);
+      font-weight: 700;
+      margin-bottom: var(--space-1);
+    }
+    .ff-name-card-sub {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-4);
+    }
+    .ff-name-input-row {
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .ff-name-input-row .form-input {
+      flex: 1;
+      min-width: 160px;
+      max-width: 340px;
+    }
+    .ff-name-locked-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-bg-3);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+    .ff-name-locked-icon { font-size: 14px; flex-shrink: 0; }
+    #ff-name-feedback {
+      font-size: var(--text-xs);
+      margin-top: var(--space-2);
+      min-height: 18px;
+    }
+    #ff-name-feedback.success { color: var(--color-success); }
+    #ff-name-feedback.error   { color: var(--color-danger); }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+      <div class="page-container" style="max-width:720px">
+
+        <h1 class="page-title">My Profile</h1>
+        <p class="page-subtitle">Your account information and statistics</p>
+
+        <!-- Loading -->
+        <div id="profile-loading">
+          <div class="profile-hero">
+            <span class="skeleton" style="width:80px;height:80px;border-radius:50%;flex-shrink:0"></span>
+            <div style="flex:1"><span class="skeleton skeleton-line medium" style="height:22px;margin-bottom:8px"></span><span class="skeleton skeleton-line short" style="height:14px"></span></div>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-tile"><span class="skeleton skeleton-line short" style="height:28px;margin-bottom:6px"></span><span class="skeleton skeleton-line medium" style="height:10px"></span></div>
+            <div class="stat-tile"><span class="skeleton skeleton-line short" style="height:28px;margin-bottom:6px"></span><span class="skeleton skeleton-line medium" style="height:10px"></span></div>
+            <div class="stat-tile"><span class="skeleton skeleton-line short" style="height:28px;margin-bottom:6px"></span><span class="skeleton skeleton-line medium" style="height:10px"></span></div>
+            <div class="stat-tile"><span class="skeleton skeleton-line short" style="height:28px;margin-bottom:6px"></span><span class="skeleton skeleton-line medium" style="height:10px"></span></div>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div id="profile-error" class="hidden"></div>
+
+        <!-- Content -->
+        <div id="profile-content" class="hidden">
+
+          <!-- Hero -->
+          <div class="profile-hero">
+            <div class="profile-avatar-large" id="profile-avatar">?</div>
+            <div class="profile-info">
+              <!-- Display name = ff_name if set, else username -->
+              <div class="profile-display-name" id="profile-display-name">—</div>
+              <!-- Always show login username below so player can identify their account -->
+              <div class="profile-login-username">Login: <span id="profile-login-username">—</span></div>
+              <div class="profile-ff-uid">FF UID: <span id="profile-ffuid">—</span></div>
+              <div class="profile-joined" id="profile-joined"></div>
+            </div>
+            <div id="profile-status-badges" style="display:flex;gap:var(--space-2);flex-wrap:wrap"></div>
+          </div>
+
+          <!-- ── Free Fire Name edit section ──────────────────────── -->
+          <!-- Onboarding banner — shown only when ?onboarding=1 is in the URL -->
+          <div id="onboarding-banner" style="display:none;margin-bottom:var(--space-4)">
+            <div class="alert alert-warning" style="align-items:flex-start;gap:var(--space-3)">
+              <span class="alert-icon" style="font-size:20px;flex-shrink:0">🎮</span>
+              <div>
+                <div style="font-weight:700;margin-bottom:var(--space-1)">Set your Free Fire Name to continue</div>
+                <div style="font-size:var(--text-sm);color:var(--color-text-muted)">
+                  Enter the same name that you use in Free Fire.<br>
+                  This name will be displayed on tournaments, leaderboards and results.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h2 class="section-title mb-4">Free Fire Name</h2>
+          <div class="ff-name-card">
+            <div class="ff-name-card-title">🔥 Free Fire Display Name</div>
+            <div class="ff-name-card-sub">
+              Enter the same name you use in Free Fire. This name is shown on tournaments, leaderboards, and results.
+            </div>
+
+            <form id="ff-name-form" autocomplete="off" novalidate>
+              <div class="ff-name-input-row">
+                <input
+                  class="form-input"
+                  id="ff-name-input"
+                  type="text"
+                  placeholder="Your Free Fire in-game name"
+                  minlength="2"
+                  maxlength="30"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Free Fire display name"
+                  required
+                >
+                <button type="submit" class="btn btn-primary" id="ff-name-save-btn">
+                  Save Name
+                </button>
+              </div>
+              <div id="ff-name-feedback"></div>
+            </form>
+
+            <!-- FF UID locked row (read-only, informational) -->
+            <div style="margin-top:var(--space-4)">
+              <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:var(--space-2)">
+                Free Fire UID — cannot be changed
+              </div>
+              <div class="ff-name-locked-row">
+                <span class="ff-name-locked-icon">🔒</span>
+                <span id="ff-uid-locked">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tournament stats -->
+          <h2 class="section-title mb-4">Tournament Statistics</h2>
+          <div class="stat-grid" id="stats-grid">
+            <div class="stat-tile">
+              <div class="stat-tile-value" id="stat-played">0</div>
+              <div class="stat-tile-label">Played</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-tile-value text-success" id="stat-wins">0</div>
+              <div class="stat-tile-label">Wins</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-tile-value text-blue" id="stat-kills">0</div>
+              <div class="stat-tile-label">Total Kills</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-tile-value text-accent" id="stat-winnings">₹0</div>
+              <div class="stat-tile-label">Winnings</div>
+            </div>
+          </div>
+
+          <!-- Wallet summary -->
+          <h2 class="section-title mb-4">Wallet Overview</h2>
+          <div class="card mb-6" id="wallet-card">
+            <div id="wallet-rows"></div>
+          </div>
+
+          <!-- Referral summary -->
+          <h2 class="section-title mb-4">Referral Summary</h2>
+          <div class="card mb-6" id="referral-card">
+            <div id="referral-rows"></div>
+          </div>
+
+          <!-- Account info -->
+          <h2 class="section-title mb-4">Account Info</h2>
+          <div class="card mb-6">
+            <div id="account-rows"></div>
+          </div>
+
+          <!-- Password reset note -->
+          <div class="security-note">
+            🔒 To change your password, contact an admin for a password reset token. There is no self-service email/SMS reset in this version.
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;margin-bottom:var(--space-8)">
+            <a href="/wallet.html"      class="btn btn-outline">💰 Wallet</a>
+            <a href="/referral.html"    class="btn btn-outline">🤝 Referral</a>
+            <a href="/my-matches.html"  class="btn btn-outline">🎮 My Matches</a>
+            <button id="logout-btn"     class="btn btn-ghost" style="color:var(--color-danger)">🚪 Logout</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { requireAuth, logout } from '/assets/js/auth.js';
+    import { initLayout, setSidebarUser } from '/assets/js/layout.js';
+    import { getWallet, getReferralInfo } from '/assets/js/wallet.js';
+    import { apiGet, apiPatch } from '/assets/js/api.js';
+    import {
+      formatAmount, formatDateTime, formatDate,
+      emptyState, errorState, escapeHtml,
+      toastSuccess, setPageTitle
+    } from '/assets/js/ui.js';
+
+    await requireAuth();
+    await initLayout();
+    setPageTitle('Profile');
+
+    // ── Onboarding mode ───────────────────────────────────────────────
+    // Activated when login.html detects the player has no ff_name and
+    // redirects here with ?onboarding=1.  The page works normally;
+    // we just surface a prominent banner and scroll to the form.
+    const _urlParams   = new URLSearchParams(window.location.search);
+    const _onboarding  = _urlParams.get('onboarding') === '1';
+    const _onboardNext = _urlParams.get('next') || '/index.html';
+
+    if (_onboarding) {
+      document.getElementById('onboarding-banner')?.style.setProperty('display', 'block');
+    }
+
+    // ── ff_name validation (mirrors backend) ─────────────────────────
+    // Free Fire names allow Unicode, stylish chars, symbols — max 15 code-points.
+    // Only < > and control characters are blocked (XSS prevention).
+    const FF_NAME_BLOCKED = /[<>\x00-\x1f\x7f]/;
+    const FF_NAME_MAX = 15;
+
+    function infoRow(label, value) {
+      return `<div class="info-row"><span class="info-label">${escapeHtml(label)}</span><span class="info-value">${value}</span></div>`;
+    }
+
+    function setFeedback(msg, type) {
+      const el = document.getElementById('ff-name-feedback');
+      if (!el) return;
+      el.textContent = msg;
+      el.className = type || '';
+    }
+
+    // ── Load profile ──────────────────────────────────────────────────
+    async function loadProfile() {
+      try {
+        const [wallet, referralInfo, meInfo] = await Promise.all([
+          getWallet(),
+          getReferralInfo(),
+          apiGet('/api/users/me'),
+        ]);
+
+        const username    = meInfo?.username || sessionStorage.getItem('aura_username') || '—';
+        const ffUid       = meInfo?.ff_uid || '—';
+        const currentName = meInfo?.ff_name || null;   // null = not yet set
+        const displayName = currentName || username;   // shown in hero
+
+        // ── Hero ──────────────────────────────────────────────────────
+        document.getElementById('profile-avatar').textContent =
+          displayName[0]?.toUpperCase() || '?';
+        document.getElementById('profile-display-name').textContent = displayName;
+        document.getElementById('profile-login-username').textContent = username;
+        document.getElementById('profile-ffuid').textContent =
+          ffUid !== '—' ? ffUid : 'Unavailable';
+        document.getElementById('ff-uid-locked').textContent =
+          ffUid !== '—' ? ffUid : '—';
+
+        if (meInfo?.created_at) {
+          document.getElementById('profile-joined').textContent =
+            `Member since ${formatDate(meInfo.created_at)}`;
+        }
+
+        setSidebarUser({ username: displayName });
+
+        // ── Pre-fill ff_name input ────────────────────────────────────
+        const nameInput = document.getElementById('ff-name-input');
+        if (nameInput && currentName) {
+          nameInput.value = currentName;
+        }
+        if (!currentName) {
+          setFeedback('⚠ You have not set your Free Fire name yet. Set it below so others see your real in-game name.', '');
+        }
+
+        // ── Load leaderboard stats ────────────────────────────────────
+        let playerStats = null;
+        try {
+          playerStats = await apiGet(`/api/leaderboard/players/${encodeURIComponent(username)}`);
+        } catch { /* stats not yet available */ }
+
+        if (playerStats) {
+          document.getElementById('stat-played').textContent   = playerStats.total_tournaments;
+          document.getElementById('stat-wins').textContent     = playerStats.total_wins;
+          document.getElementById('stat-kills').textContent    = playerStats.total_kills;
+          document.getElementById('stat-winnings').textContent = formatAmount(playerStats.total_winnings);
+          if (playerStats.member_since) {
+            document.getElementById('profile-joined').textContent =
+              `Member since ${formatDate(playerStats.member_since)}`;
+          }
+        } else {
+          ['stat-played','stat-wins','stat-kills','stat-winnings'].forEach(id => {
+            document.getElementById(id).textContent = '—';
+          });
+        }
+
+        // ── Wallet card ───────────────────────────────────────────────
+        document.getElementById('wallet-rows').innerHTML = [
+          infoRow('Deposit Balance',  `<span class="text-accent text-mono">${formatAmount(wallet.deposit_balance)}</span>`),
+          infoRow('Winning Balance',  `<span class="text-success text-mono">${formatAmount(wallet.winning_balance)}</span>`),
+          infoRow('Referral Balance', `<span class="text-blue text-mono">${formatAmount(wallet.referral_balance)}</span>`),
+          infoRow('Withdrawal Hold',  `<span class="text-mono">${formatAmount(wallet.withdrawal_hold)}</span>`),
+          infoRow('Total Balance',    `<strong class="text-mono">${formatAmount(wallet.total_balance)}</strong>`),
+          infoRow('Wallet Status',    wallet.is_frozen
+            ? '<span class="badge badge-cancelled">Frozen</span>'
+            : '<span class="badge badge-open">Active</span>'),
+        ].join('');
+
+        // ── Referral card ─────────────────────────────────────────────
+        document.getElementById('referral-rows').innerHTML = [
+          infoRow('My Referral Code',     `<span class="text-accent text-mono fw-700" style="letter-spacing:2px">${escapeHtml(referralInfo.my_referral_code)}</span>`),
+          infoRow('Reward Per Referral',  formatAmount(referralInfo.reward_per_referral)),
+          infoRow('Total Referred',       `${referralInfo.total_referrals_made}`),
+          infoRow('Completed Referrals',  `${referralInfo.completed_referrals}`),
+          infoRow('Rewarded Referrals',   `${referralInfo.rewarded_referrals}`),
+          infoRow('Total Bonus Earned',   `<span class="text-accent text-mono">${formatAmount(referralInfo.total_bonus_earned)}</span>`),
+          ...(referralInfo.referred_by_username
+            ? [infoRow('Referred By', `<span class="text-muted">${escapeHtml(referralInfo.referred_by_username)}</span>`)]
+            : []),
+        ].join('');
+
+        // ── Account info ──────────────────────────────────────────────
+        const memberSince = playerStats?.member_since || meInfo?.created_at;
+        document.getElementById('account-rows').innerHTML = [
+          infoRow('Free Fire Name',
+            currentName
+              ? `<strong>${escapeHtml(currentName)}</strong>`
+              : `<span class="text-muted" style="font-style:italic">Not set</span>`),
+          infoRow('Login Username',  `<span class="text-mono">${escapeHtml(username)}</span>`),
+          infoRow('Free Fire UID',   `<span class="text-mono">${escapeHtml(ffUid)}</span>`),
+          infoRow('Account Type',    '<span class="badge badge-confirmed">Player</span>'),
+          ...(memberSince
+            ? [infoRow('Member Since', formatDate(memberSince))]
+            : []),
+        ].join('');
+
+        document.getElementById('profile-loading').classList.add('hidden');
+        document.getElementById('profile-content').classList.remove('hidden');
+
+        // ── Onboarding: scroll to and focus the ff_name form ─────────
+        if (_onboarding) {
+          const ffForm = document.getElementById('ff-name-form');
+          if (ffForm) {
+            ffForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('ff-name-input')?.focus();
+          }
+        }
+
+      } catch (err) {
+        document.getElementById('profile-loading').classList.add('hidden');
+        document.getElementById('profile-error').innerHTML =
+          errorState(err.displayMessage || 'Failed to load profile.', loadProfile);
+        document.getElementById('profile-error').classList.remove('hidden');
+      }
+    }
+
+    // ── Save Free Fire name ───────────────────────────────────────────
+    document.getElementById('ff-name-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setFeedback('', '');
+
+      const input  = document.getElementById('ff-name-input');
+      const btn    = document.getElementById('ff-name-save-btn');
+      const value  = input?.value?.trim() ?? '';
+
+      // Client-side validation (mirrors backend)
+      if (!value) {
+        setFeedback('Free Fire name cannot be empty.', 'error');
+        input?.focus();
+        return;
+      }
+      if ([...value].length > FF_NAME_MAX) {
+        setFeedback(`Free Fire name must be ${FF_NAME_MAX} characters or less.`, 'error');
+        input?.focus();
+        return;
+      }
+      if (FF_NAME_BLOCKED.test(value)) {
+        setFeedback('Free Fire name must not contain < > or control characters.', 'error');
+        input?.focus();
+        return;
+      }
+
+      btn.disabled    = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        const result = await apiPatch('/api/users/me', { ff_name: value });
+
+        // Update hero immediately — no page reload needed
+        const displayName = result.ff_name || value;
+        document.getElementById('profile-display-name').textContent = displayName;
+        document.getElementById('profile-avatar').textContent =
+          displayName[0]?.toUpperCase() || '?';
+        setSidebarUser({ username: displayName });
+
+        // Update account-rows inline
+        const ffNameCell = document.querySelector('#account-rows .info-value');
+        if (ffNameCell) ffNameCell.innerHTML = `<strong>${escapeHtml(displayName)}</strong>`;
+
+        setFeedback(`✓ Free Fire name updated to "${escapeHtml(displayName)}"`, 'success');
+        toastSuccess('Free Fire name updated!');
+
+        // ── Onboarding completion redirect ────────────────────────────
+        // If the player just completed mandatory onboarding, send them
+        // to their original destination (or home) after a short delay.
+        if (_onboarding) {
+          setFeedback(`✓ Free Fire name set! Redirecting…`, 'success');
+          setTimeout(() => { window.location.href = _onboardNext; }, 900);
+        }
+      } catch (err) {
+        setFeedback(err.displayMessage || 'Failed to save. Please try again.', 'error');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Save Name';
+      }
+    });
+
+    // ── Logout ────────────────────────────────────────────────────────
+    document.getElementById('logout-btn')?.addEventListener('click', async () => {
+      await logout();
+      toastSuccess('Logged out.');
+      setTimeout(() => window.location.href = '/login.html', 600);
+    });
+
+    loadProfile();
+  </script>
+</body>
+</html>

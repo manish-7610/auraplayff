@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Money — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    .method-tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-6); border-bottom: 1px solid var(--color-border); padding-bottom: 0; }
+    .method-tab { padding: var(--space-3) var(--space-5); font-size: var(--text-sm); font-weight: 600; color: var(--color-text-muted); border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; transition: all var(--transition); }
+    .method-tab.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+    .method-panel { display: none; }
+    .method-panel.active { display: block; }
+    .amount-presets { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+    .amount-preset { padding: var(--space-2) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-full); background: var(--color-bg-3); font-size: var(--text-sm); font-weight: 600; cursor: pointer; transition: all var(--transition); }
+    .amount-preset:hover, .amount-preset.selected { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-glow); }
+    .upi-box { background: var(--color-bg-3); border: 1px dashed var(--color-border-light); border-radius: var(--radius-lg); padding: var(--space-6); text-align: center; margin-bottom: var(--space-5); }
+    .upi-id-display { font-family: var(--font-mono); font-size: var(--text-xl); font-weight: 900; color: var(--color-accent); letter-spacing: 2px; margin: var(--space-3) 0; }
+    .deposit-history-row { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); gap: var(--space-3); flex-wrap: wrap; }
+    .deposit-history-row:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+      <div class="page-container" style="max-width:680px">
+
+        <a href="/wallet.html" class="btn btn-ghost btn-sm" style="margin-bottom:var(--space-4)">← Wallet</a>
+        <h1 class="page-title">Add Money</h1>
+        <p class="page-subtitle">Top up your deposit balance</p>
+
+        <!-- Method tabs -->
+        <div class="method-tabs">
+          <button class="method-tab active" data-tab="online">💳 Online Payment</button>
+          <button class="method-tab" data-tab="manual">📱 Manual UPI</button>
+        </div>
+
+        <!-- ── Online tab ── -->
+        <div class="method-panel active" id="panel-online">
+          <div class="card">
+            <!-- Shown when Razorpay is disabled (default state until credentials configured) -->
+            <div id="online-disabled-notice">
+              <div style="text-align:center;padding:var(--space-6) 0 var(--space-4)">
+                <div style="font-size:40px;margin-bottom:var(--space-3)">💳</div>
+                <div style="font-size:var(--text-lg);font-weight:800;margin-bottom:var(--space-2)">Online Payment — Coming Soon</div>
+                <div class="text-muted text-sm" style="max-width:400px;margin:0 auto">
+                  Razorpay online payment is not yet available. Please use Manual UPI transfer in the meantime.
+                </div>
+              </div>
+            </div>
+
+            <!-- Shown when Razorpay is available (credentials configured on server) -->
+            <div id="online-active-section" style="display:none">
+              <h3 class="section-title mb-4">Pay via Razorpay</h3>
+              <p class="text-muted text-sm mb-5">Instant credit after successful payment. Supports UPI, Net Banking, Cards, and Wallets.</p>
+
+              <div class="form-group mb-4">
+                <label class="form-label">Amount (₹)</label>
+                <div class="amount-presets" id="online-presets">
+                  <button class="amount-preset" data-amount="100">₹100</button>
+                  <button class="amount-preset" data-amount="200">₹200</button>
+                  <button class="amount-preset" data-amount="500">₹500</button>
+                  <button class="amount-preset" data-amount="1000">₹1000</button>
+                  <button class="amount-preset" data-amount="2000">₹2000</button>
+                </div>
+                <input class="form-input" type="number" id="online-amount" placeholder="Enter amount" min="10" step="1">
+                <div class="form-hint">Minimum ₹10</div>
+              </div>
+
+              <div id="online-error" class="alert alert-error mb-4" style="display:none">
+                <span class="alert-icon">✕</span><span id="online-error-msg"></span>
+              </div>
+
+              <button class="btn btn-primary btn-full btn-lg" id="pay-btn">Pay with Razorpay</button>
+
+              <div class="alert alert-info mt-4">
+                <span class="alert-icon">ℹ</span>
+                <span>Your wallet is credited only after the payment is verified server-side. Never share payment details.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Manual UPI tab ── -->
+        <div class="method-panel" id="panel-manual">
+          <div class="card mb-5">
+            <!-- Shown when manual payment is inactive -->
+            <div id="manual-unavailable" style="display:none;text-align:center;padding:var(--space-6) 0">
+              <div style="font-size:40px;margin-bottom:var(--space-3)">📱</div>
+              <div style="font-size:var(--text-lg);font-weight:800;margin-bottom:var(--space-2)">Manual Payment Unavailable</div>
+              <div class="text-muted text-sm">Manual UPI deposits are temporarily unavailable. Please try again later.</div>
+            </div>
+
+            <!-- Shown when manual payment is active -->
+            <div id="manual-active-section">
+              <h3 class="section-title mb-4">Manual UPI Transfer</h3>
+              <p class="text-muted text-sm mb-5">Transfer to our UPI ID and submit the UTR for approval. Credited within 24 hours after admin verification.</p>
+
+              <!-- Step 1: Amount -->
+              <div id="manual-step-1">
+                <div class="form-group mb-4">
+                  <label class="form-label">Amount (₹)</label>
+                  <div class="amount-presets" id="manual-presets">
+                    <button class="amount-preset" data-amount="100">₹100</button>
+                    <button class="amount-preset" data-amount="200">₹200</button>
+                    <button class="amount-preset" data-amount="500">₹500</button>
+                    <button class="amount-preset" data-amount="1000">₹1000</button>
+                  </div>
+                  <input class="form-input" type="number" id="manual-amount" placeholder="Enter amount" min="10" step="1">
+                </div>
+                <div id="manual-step1-error" class="alert alert-error mb-4" style="display:none">
+                  <span class="alert-icon">✕</span><span id="manual-step1-error-msg"></span>
+                </div>
+                <button class="btn btn-primary btn-full" id="manual-next-btn">Continue →</button>
+              </div>
+
+              <!-- Step 2: Pay to UPI (shown after step 1) -->
+              <div id="manual-step-2" class="hidden">
+                <div class="upi-box">
+                  <div class="text-xs text-muted text-uppercase" style="letter-spacing:.5px;margin-bottom:var(--space-2)">Send ₹<span id="upi-amount-display"></span> to</div>
+                  <div class="upi-id-display" id="upi-id-display">Loading…</div>
+                  <div id="upi-display-name" class="text-sm text-muted" style="margin-bottom:2px"></div>
+                  <div id="upi-account-name" class="text-sm text-muted mb-4" style="font-size:11px"></div>
+                  <!-- QR code — fetched from backend proxy when active -->
+                  <div id="upi-qr-wrapper" style="display:none;margin:var(--space-3) auto var(--space-2);width:fit-content;text-align:center">
+                    <div style="font-size:11px;color:var(--color-text-dim);margin-bottom:4px">Scan QR to pay</div>
+                    <!-- Actual QR image — loaded via authenticated proxy endpoint -->
+                    <img id="upi-qr-img"
+                         alt="UPI QR Code"
+                         style="display:none;width:180px;height:180px;object-fit:contain;
+                                border-radius:8px;border:1px solid var(--color-border);
+                                background:var(--color-bg-2);padding:6px">
+                    <!-- Fallback shown while loading or if fetch fails -->
+                    <div id="upi-qr-fallback" style="padding:10px 16px;background:var(--color-bg-2);
+                         border-radius:6px;font-size:12px;color:var(--color-text-muted)">
+                      Loading QR…
+                    </div>
+                  </div>
+                  <button class="copy-btn" id="copy-upi-btn" style="margin-top:var(--space-3)">Copy UPI ID</button>
+                </div>
+                <div id="upi-instructions-box" class="alert alert-info mb-4" style="display:none">
+                  <span class="alert-icon">ℹ</span>
+                  <span id="upi-instructions-text"></span>
+                </div>
+                <div class="alert alert-warning mb-5">
+                  <span class="alert-icon">⚠</span>
+                  <span>Do NOT close this page after transferring. Submit your UTR/transaction ID below for admin verification.</span>
+                </div>
+                <div class="form-stack">
+                  <div class="form-group">
+                    <label class="form-label">UTR / Transaction ID</label>
+                    <input class="form-input" type="text" id="utr-input" placeholder="e.g. 123456789012" maxlength="50">
+                    <div class="form-hint">8–50 alphanumeric characters. Find it in your UPI app transaction history.</div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Payer VPA / Note <span class="text-muted">(optional)</span></label>
+                    <input class="form-input" type="text" id="payer-info-input" placeholder="yourname@paytm (optional)" maxlength="200">
+                  </div>
+                </div>
+                <div id="manual-step2-error" class="alert alert-error mt-4 mb-4" style="display:none">
+                  <span class="alert-icon">✕</span><span id="manual-step2-error-msg"></span>
+                </div>
+                <div style="display:flex;gap:var(--space-3);margin-top:var(--space-5)">
+                  <button class="btn btn-outline" id="manual-back-btn">← Back</button>
+                  <button class="btn btn-primary flex-1" id="submit-utr-btn">Submit UTR for Approval</button>
+                </div>
+              </div>
+
+              <!-- Step 3: Success -->
+              <div id="manual-step-3" class="hidden" style="text-align:center;padding:var(--space-6) 0">
+                <div style="font-size:48px;margin-bottom:var(--space-4)">⏳</div>
+                <div style="font-size:var(--text-lg);font-weight:800;margin-bottom:var(--space-3)">Under Review</div>
+                <div class="text-muted text-sm mb-5">Your UTR has been submitted. Admin will verify and credit your wallet within 24 hours.</div>
+                <a href="/wallet.html" class="btn btn-outline">← Back to Wallet</a>
+              </div>
+            </div><!-- /manual-active-section -->
+          </div>
+        </div>
+
+        <!-- Deposit history -->
+        <div class="section-title mb-4" style="margin-top:var(--space-8)">Recent Deposits</div>
+        <div class="card" style="padding:0 var(--space-5)">
+          <div id="deposit-history"></div>
+          <div id="deposit-history-empty" class="hidden"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { requireAuth } from '/assets/js/auth.js';
+    import { initLayout } from '/assets/js/layout.js';
+    import { createOnlineDeposit, verifyOnlinePayment, createManualDeposit, submitUTR, listDeposits } from '/assets/js/wallet.js';
+    import { apiGet, getAccessToken } from '/assets/js/api.js';
+    import { setButtonLoading, toastSuccess, toastError, statusBadge, formatAmount, formatDateTime, emptyState, escapeHtml, setPageTitle, copyToClipboard } from '/assets/js/ui.js';
+
+    await requireAuth();
+    await initLayout();
+    setPageTitle('Add Money');
+
+    // ── Load payment config from backend ─────────────────────────────
+    // GET /api/deposits/payment-config returns:
+    //   { manual_payment_active, upi_id, upi_display_name, upi_account_name,
+    //     instructions, qr_ref }
+    // Nothing is hardcoded here — all values come from platform settings.
+    let _paymentConfig = null;
+
+    async function loadPaymentConfig() {
+      try {
+        _paymentConfig = await apiGet('/api/deposits/payment-config');
+      } catch {
+        // Fall back to safe defaults — show both as unavailable
+        _paymentConfig = {
+          manual_payment_active: false,
+          upi_id: '', upi_display_name: '', upi_account_name: '',
+          instructions: '', qr_ref: '',
+        };
+      }
+      _applyPaymentConfig(_paymentConfig);
+    }
+
+    function _applyPaymentConfig(cfg) {
+      // ── Online tab: Razorpay state ────────────────────────────────
+      // Razorpay is enabled only when the server returns a valid key_id
+      // (which happens only when the factory selects RazorpayAdapter,
+      // i.e. when real credentials are configured).
+      // We detect this by trying to create an order; until then the
+      // disabled notice is always shown — consistent with the backend state.
+      // The "Coming Soon" notice is the default until proven otherwise.
+      document.getElementById('online-disabled-notice').style.display = 'block';
+      document.getElementById('online-active-section').style.display  = 'none';
+
+      // ── Manual tab: active / inactive ────────────────────────────
+      if (cfg.manual_payment_active) {
+        document.getElementById('manual-unavailable').style.display     = 'none';
+        document.getElementById('manual-active-section').style.display  = 'block';
+      } else {
+        document.getElementById('manual-unavailable').style.display     = 'block';
+        document.getElementById('manual-active-section').style.display  = 'none';
+      }
+    }
+
+    // ── Tab switching ─────────────────────────────────────────────────
+    document.querySelectorAll('.method-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.method-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`panel-${tab.dataset.tab}`).classList.add('active');
+      });
+    });
+
+    // ── Amount preset selection ───────────────────────────────────────
+    function wirePresets(containerId, inputId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-amount]');
+        if (!btn) return;
+        document.getElementById(inputId).value = btn.dataset.amount;
+        container.querySelectorAll('.amount-preset').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    }
+    wirePresets('online-presets', 'online-amount');
+    wirePresets('manual-presets', 'manual-amount');
+
+    // ── Online: Razorpay flow ─────────────────────────────────────────
+    // pay-btn may be absent when the online section is hidden; guard with ?.
+    document.getElementById('pay-btn')?.addEventListener('click', async () => {
+      const amountStr = document.getElementById('online-amount').value.trim();
+      const errBox = document.getElementById('online-error');
+      const errMsg = document.getElementById('online-error-msg');
+      errBox.style.display = 'none';
+
+      const amount = parseFloat(amountStr);
+      if (!amountStr || isNaN(amount) || amount < 10) {
+        errMsg.textContent = 'Enter a valid amount (minimum ₹10).';
+        errBox.style.display = 'flex';
+        return;
+      }
+
+      const btn = document.getElementById('pay-btn');
+      setButtonLoading(btn, true);
+
+      try {
+        const data = await createOnlineDeposit(amount);
+
+        // Load Razorpay checkout script
+        await loadScript(CONFIG.RAZORPAY_CHECKOUT_URL);
+
+        const options = {
+          key:         data.razorpay_key_id,  // public key only — never the secret
+          amount:      Math.round(parseFloat(data.amount) * 100), // paise
+          currency:    data.currency,
+          name:        CONFIG.APP_NAME,
+          description: data.description,
+          order_id:    data.razorpay_order_id,
+          handler: async (response) => {
+            try {
+              const verified = await verifyOnlinePayment(data.deposit_id, {
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+              });
+              toastSuccess(`₹${parseFloat(verified.amount).toFixed(2)} added to your wallet!`);
+              setTimeout(() => window.location.href = '/wallet.html', 1500);
+            } catch (e) {
+              toastError('Payment received but verification failed. Contact support with payment ID: ' + response.razorpay_payment_id);
+            }
+          },
+          prefill: {},
+          theme: { color: '#ff6b35' },
+          modal: { ondismiss: () => setButtonLoading(btn, false) },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        setButtonLoading(btn, false);
+      } catch (err) {
+        setButtonLoading(btn, false);
+        errMsg.textContent = err.displayMessage || 'Online payment is not available at the moment. Please use Manual UPI.';
+        errBox.style.display = 'flex';
+      }
+    });
+
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = src; s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    // ── Manual: Step 1 — amount ───────────────────────────────────────
+    let manualDepositId = null;
+    let upiDisplayId    = '';
+
+    document.getElementById('manual-next-btn')?.addEventListener('click', async () => {
+      const amountStr = document.getElementById('manual-amount').value.trim();
+      const errBox    = document.getElementById('manual-step1-error');
+      const errMsg    = document.getElementById('manual-step1-error-msg');
+      errBox.style.display = 'none';
+
+      const amount = parseFloat(amountStr);
+      if (!amountStr || isNaN(amount) || amount < 10) {
+        errMsg.textContent = 'Enter a valid amount (minimum ₹10).';
+        errBox.style.display = 'flex';
+        return;
+      }
+
+      const btn = document.getElementById('manual-next-btn');
+      setButtonLoading(btn, true);
+
+      try {
+        const result = await createManualDeposit(amount);
+        manualDepositId = result.deposit.id;
+        document.getElementById('upi-amount-display').textContent = parseFloat(result.deposit.amount).toFixed(2);
+
+        // UPI info comes from result.upi_info (already backed by platform settings).
+        // Also honour _paymentConfig loaded at page start as a fallback.
+        const upiInfo = result.upi_info || {};
+        upiDisplayId = upiInfo.upi_id || _paymentConfig?.upi_id || '—';
+
+        document.getElementById('upi-id-display').textContent = upiDisplayId;
+
+        const displayName  = upiInfo.upi_display_name  || _paymentConfig?.upi_display_name || '';
+        const accountName  = upiInfo.upi_account_name  || _paymentConfig?.upi_account_name || '';
+        const instructions = upiInfo.instructions       || _paymentConfig?.instructions     || '';
+
+        document.getElementById('upi-display-name').textContent  = displayName;
+        document.getElementById('upi-account-name').textContent  = accountName;
+
+        // Show instructions if non-empty
+        const instrBox  = document.getElementById('upi-instructions-box');
+        const instrText = document.getElementById('upi-instructions-text');
+        if (instructions) {
+          instrText.textContent    = instructions;
+          instrBox.style.display   = 'flex';
+        }
+
+        // Show QR image if a QR ref exists — fetch via authenticated proxy
+        if (upiInfo.qr_ref || _paymentConfig?.qr_ref) {
+          document.getElementById('upi-qr-wrapper').style.display = 'block';
+          _loadQRImage();
+        }
+
+        document.getElementById('manual-step-1').classList.add('hidden');
+        document.getElementById('manual-step-2').classList.remove('hidden');
+        setButtonLoading(btn, false);
+      } catch (err) {
+        setButtonLoading(btn, false);
+        errMsg.textContent = err.displayMessage || 'Failed to create deposit. Please try again.';
+        errBox.style.display = 'flex';
+      }
+    });
+
+    // ── QR image loader ───────────────────────────────────────────────
+    // Fetches the QR image from the backend proxy using the player's auth
+    // token. The proxy reads from private Supabase storage server-side —
+    // the service-role key and bucket details never reach the browser.
+    async function _loadQRImage() {
+      const img      = document.getElementById('upi-qr-img');
+      const fallback = document.getElementById('upi-qr-fallback');
+      if (!img) return;
+
+      fallback.textContent = 'Loading QR…';
+
+      try {
+        const token = getAccessToken();
+        const resp  = await fetch(CONFIG.API_BASE_URL + '/api/deposits/qr-image', {
+          headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+        });
+
+        if (!resp.ok) {
+          // Server said no QR (404) or payment inactive — fall back to text
+          fallback.textContent = 'Use UPI ID above to pay.';
+          return;
+        }
+
+        const blob   = await resp.blob();
+        const objUrl = URL.createObjectURL(blob);
+
+        img.onload = () => {
+          fallback.style.display = 'none';
+          img.style.display      = 'block';
+          // Revoke after render to free memory (image already painted)
+          setTimeout(() => URL.revokeObjectURL(objUrl), 60000);
+        };
+        img.onerror = () => {
+          img.style.display      = 'none';
+          fallback.textContent   = 'Use UPI ID above to pay.';
+          URL.revokeObjectURL(objUrl);
+        };
+        img.src = objUrl;
+      } catch (_e) {
+        fallback.textContent = 'Use UPI ID above to pay.';
+      }
+    }
+
+    document.getElementById('copy-upi-btn')?.addEventListener('click', function() {
+      copyToClipboard(upiDisplayId, this);
+    });
+
+    document.getElementById('manual-back-btn')?.addEventListener('click', () => {
+      document.getElementById('manual-step-1').classList.remove('hidden');
+      document.getElementById('manual-step-2').classList.add('hidden');
+    });
+
+    // ── Manual: Step 2 — submit UTR ───────────────────────────────────
+    document.getElementById('submit-utr-btn')?.addEventListener('click', async () => {
+      const utr       = document.getElementById('utr-input').value.trim().toUpperCase();
+      const payerInfo = document.getElementById('payer-info-input').value.trim() || null;
+      const errBox    = document.getElementById('manual-step2-error');
+      const errMsg    = document.getElementById('manual-step2-error-msg');
+      errBox.style.display = 'none';
+
+      const utrRe = /^[A-Z0-9]{8,50}$/;
+      if (!utr || !utrRe.test(utr)) {
+        errMsg.textContent = 'UTR must be 8–50 alphanumeric characters (letters and digits only).';
+        errBox.style.display = 'flex';
+        return;
+      }
+
+      const btn = document.getElementById('submit-utr-btn');
+      setButtonLoading(btn, true);
+
+      try {
+        await submitUTR(manualDepositId, { utr, payer_info: payerInfo });
+        document.getElementById('manual-step-2').classList.add('hidden');
+        document.getElementById('manual-step-3').classList.remove('hidden');
+        loadDepositHistory();
+      } catch (err) {
+        setButtonLoading(btn, false);
+        if (err.status === 409) {
+          errMsg.textContent = 'This UTR has already been submitted. Please check your deposit history.';
+        } else {
+          errMsg.textContent = err.displayMessage || 'Failed to submit UTR. Please try again.';
+        }
+        errBox.style.display = 'flex';
+      }
+    });
+
+    // ── Deposit history ───────────────────────────────────────────────
+    async function loadDepositHistory() {
+      const container = document.getElementById('deposit-history');
+      const emptyEl   = document.getElementById('deposit-history-empty');
+      container.innerHTML = '<div class="deposit-history-row"><span class="skeleton skeleton-line long"></span></div>';
+      try {
+        const data = await listDeposits({ limit: 5 });
+        if (!data.items.length) {
+          container.innerHTML = '';
+          emptyEl.innerHTML = emptyState({ icon: '💳', title: 'No deposits yet', desc: 'Your deposit history will appear here.' });
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+        container.innerHTML = data.items.map(d => `
+          <div class="deposit-history-row">
+            <div>
+              <div class="text-sm fw-700">${d.method === 'manual' ? '📱 Manual UPI' : '💳 Online'} · ${formatAmount(d.amount)}</div>
+              <div class="text-xs text-muted">${formatDateTime(d.created_at)}${d.utr ? ` · UTR: ${escapeHtml(d.utr)}` : ''}</div>
+            </div>
+            ${statusBadge(d.status)}
+          </div>`).join('');
+      } catch { container.innerHTML = ''; }
+    }
+
+    // ── Bootstrap ────────────────────────────────────────────────────
+    // Load config first, then history; both are independent fetches.
+    await loadPaymentConfig();
+    loadDepositHistory();
+  </script>
+</body>
+</html>

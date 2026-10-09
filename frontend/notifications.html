@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    .notif-list {
+      display: flex;
+      flex-direction: column;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+    }
+    .notif-item {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: var(--space-4) var(--space-5);
+      background: var(--color-card);
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      transition: background var(--transition);
+      position: relative;
+      text-decoration: none;
+      color: inherit;
+    }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item:hover { background: var(--color-card-hover); text-decoration: none; }
+    .notif-item.unread {
+      background: rgba(255,107,53,.04);
+    }
+    .notif-item.unread::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--color-accent);
+    }
+    .notif-icon-wrap {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-full);
+      background: var(--color-bg-3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-title-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: 3px; flex-wrap: wrap; }
+    .notif-title { font-size: var(--text-sm); font-weight: 600; }
+    .notif-time  { font-size: var(--text-xs); color: var(--color-text-dim); white-space: nowrap; }
+    .notif-msg   { font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.5; }
+    .notif-read-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-accent); flex-shrink: 0; margin-top: 6px; }
+    .filter-bar  { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-5); }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+      <div class="page-container" style="max-width:760px">
+
+        <!-- Header -->
+        <div class="filter-bar">
+          <div>
+            <h1 class="page-title" style="margin-bottom:2px">Notifications</h1>
+            <div id="unread-summary" class="text-muted text-sm"></div>
+          </div>
+          <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" id="mark-all-btn">Mark all read</button>
+            <div style="display:flex;gap:var(--space-2)">
+              <button class="filter-chip active" data-filter="all"  id="filter-all">All</button>
+              <button class="filter-chip" data-filter="unread" id="filter-unread">Unread</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- List -->
+        <div id="notif-container">
+          <!-- loading skeletons -->
+          <div class="notif-list" id="notif-loading">
+            <div class="notif-item"><div class="notif-icon-wrap" style="background:transparent"><span class="skeleton" style="width:40px;height:40px;border-radius:50%"></span></div><div style="flex:1"><span class="skeleton skeleton-line medium mb-2"></span><span class="skeleton skeleton-line long"></span></div></div>
+            <div class="notif-item"><div class="notif-icon-wrap" style="background:transparent"><span class="skeleton" style="width:40px;height:40px;border-radius:50%"></span></div><div style="flex:1"><span class="skeleton skeleton-line short mb-2"></span><span class="skeleton skeleton-line long"></span></div></div>
+            <div class="notif-item"><div class="notif-icon-wrap" style="background:transparent"><span class="skeleton" style="width:40px;height:40px;border-radius:50%"></span></div><div style="flex:1"><span class="skeleton skeleton-line medium mb-2"></span><span class="skeleton skeleton-line medium"></span></div></div>
+          </div>
+          <div id="notif-list" class="hidden notif-list"></div>
+          <div id="notif-empty" class="hidden"></div>
+          <div id="notif-error" class="hidden" style="padding:var(--space-4)"></div>
+        </div>
+
+        <div id="notif-pagination"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { requireAuth } from '/assets/js/auth.js';
+    import { initLayout } from '/assets/js/layout.js';
+    import { listNotifications, getUnreadCount, markRead, markAllRead, notifIcon } from '/assets/js/notifications.js';
+    import {
+      updateNotifBadges, renderPagination, emptyState, errorState,
+      escapeHtml, timeAgo, setPageTitle, toastSuccess, setButtonLoading
+    } from '/assets/js/ui.js';
+
+    await requireAuth();
+    await initLayout();
+    setPageTitle('Notifications');
+
+    const LIMIT    = 20;
+    let offset     = 0;
+    let unreadOnly = false;
+
+    // ── Deep-link mapping ─────────────────────────────────────────────
+    // Map notification entity type → page URL
+    function getDeepLink(n) {
+      if (!n.related_entity_id || !n.related_entity_type) return null;
+      const id = n.related_entity_id;
+      switch (n.related_entity_type) {
+        case 'tournament':      return `/tournament-details.html?id=${id}`;
+        case 'deposit':         return `/deposit.html`;
+        case 'withdrawal':      return `/withdrawal.html`;
+        case 'referral':        return `/referral.html`;
+        case 'agent_warning':   return null;
+        case 'agent_grace':     return null;
+        case 'agent_salary_record': return null;
+        case 'screenshot':      return `/results.html?id=${id}`;
+        default:                return null;
+      }
+    }
+
+    // ── Update unread badge text ──────────────────────────────────────
+    async function refreshUnreadBadge() {
+      try {
+        const data = await getUnreadCount();
+        updateNotifBadges(data.unread_count);
+        const summary = document.getElementById('unread-summary');
+        if (data.unread_count > 0) {
+          summary.textContent = `${data.unread_count} unread notification${data.unread_count !== 1 ? 's' : ''}`;
+        } else {
+          summary.textContent = 'All caught up!';
+        }
+      } catch { /* silent */ }
+    }
+
+    // ── Filter chips ──────────────────────────────────────────────────
+    document.getElementById('filter-all').addEventListener('click', () => {
+      unreadOnly = false;
+      offset = 0;
+      document.getElementById('filter-all').classList.add('active');
+      document.getElementById('filter-unread').classList.remove('active');
+      load();
+    });
+    document.getElementById('filter-unread').addEventListener('click', () => {
+      unreadOnly = true;
+      offset = 0;
+      document.getElementById('filter-unread').classList.add('active');
+      document.getElementById('filter-all').classList.remove('active');
+      load();
+    });
+
+    // ── Mark all read ─────────────────────────────────────────────────
+    document.getElementById('mark-all-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('mark-all-btn');
+      setButtonLoading(btn, true);
+      try {
+        const result = await markAllRead();
+        setButtonLoading(btn, false);
+        if (result.marked_read > 0) {
+          toastSuccess(`Marked ${result.marked_read} notification${result.marked_read !== 1 ? 's' : ''} as read.`);
+          await Promise.all([load(), refreshUnreadBadge()]);
+        }
+      } catch { setButtonLoading(btn, false); }
+    });
+
+    // ── Load list ─────────────────────────────────────────────────────
+    async function load() {
+      const loadingEl = document.getElementById('notif-loading');
+      const listEl    = document.getElementById('notif-list');
+      const emptyEl   = document.getElementById('notif-empty');
+      const errEl     = document.getElementById('notif-error');
+      const pagEl     = document.getElementById('notif-pagination');
+
+      loadingEl.classList.remove('hidden');
+      listEl.classList.add('hidden');
+      emptyEl.classList.add('hidden');
+      errEl.classList.add('hidden');
+      pagEl.innerHTML = '';
+
+      try {
+        const data = await listNotifications({ limit: LIMIT, offset, unread_only: unreadOnly });
+
+        loadingEl.classList.add('hidden');
+
+        // Update unread count in header
+        const summary = document.getElementById('unread-summary');
+        if (data.unread_count > 0) {
+          summary.textContent = `${data.unread_count} unread`;
+        } else {
+          summary.textContent = 'All caught up!';
+        }
+        updateNotifBadges(data.unread_count);
+
+        if (!data.items.length) {
+          emptyEl.innerHTML = emptyState({
+            icon: '🔔',
+            title: unreadOnly ? 'No unread notifications' : 'No notifications yet',
+            desc: unreadOnly ? 'You\'re all caught up!' : 'Notifications will appear here when you join tournaments, get paid, and more.',
+          });
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+
+        listEl.innerHTML = data.items.map(n => {
+          const link     = getDeepLink(n);
+          const readCls  = n.is_read ? '' : 'unread';
+          const icon     = notifIcon(n.notification_type);
+          const ago      = timeAgo(n.created_at);
+          const dotHtml  = !n.is_read ? '<div class="notif-read-dot"></div>' : '';
+
+          const inner = `
+            <div class="notif-icon-wrap">${icon}</div>
+            <div class="notif-body">
+              <div class="notif-title-row">
+                <span class="notif-title">${escapeHtml(n.title)}</span>
+                <span class="notif-time">${ago}</span>
+              </div>
+              <div class="notif-msg">${escapeHtml(n.message)}</div>
+            </div>
+            ${dotHtml}`;
+
+          // Make clickable: if deep-link exists use <a>, else <div>
+          if (link) {
+            return `<a href="${link}" class="notif-item ${readCls}" data-id="${n.id}" data-read="${n.is_read}">${inner}</a>`;
+          }
+          return `<div class="notif-item ${readCls}" data-id="${n.id}" data-read="${n.is_read}">${inner}</div>`;
+        }).join('');
+
+        listEl.classList.remove('hidden');
+
+        // Wire click-to-mark-read
+        listEl.querySelectorAll('.notif-item').forEach(item => {
+          item.addEventListener('click', async () => {
+            const id   = item.dataset.id;
+            const read = item.dataset.read === 'true';
+            if (read) return; // already read — navigation happens naturally
+            try {
+              await markRead(id);
+              item.classList.remove('unread');
+              item.querySelector('.notif-read-dot')?.remove();
+              item.dataset.read = 'true';
+              refreshUnreadBadge();
+            } catch { /* silent */ }
+          });
+        });
+
+        renderPagination(pagEl, data.total, LIMIT, offset, newOff => {
+          offset = newOff;
+          load();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+      } catch (err) {
+        loadingEl.classList.add('hidden');
+        errEl.innerHTML = errorState(err.displayMessage || 'Failed to load notifications.', load);
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    load();
+    refreshUnreadBadge();
+  </script>
+</body>
+</html>

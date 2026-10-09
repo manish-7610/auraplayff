@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tournaments — AuraPlayFF Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin-theme.css">
+  <style>.td-link{color:var(--color-blue);font-weight:600;text-decoration:none}.td-link:hover{color:var(--color-accent)}</style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <div class="admin-main">
+    <div class="admin-topbar"></div>
+    <main class="admin-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Tournaments</h1>
+          <p class="page-subtitle">Manage tournament lifecycle — create, monitor, and operate</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary" id="btn-open-create">+ Create Tournament</button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-bar">
+        <select class="form-select" id="filter-status">
+          <option value="">All Statuses</option>
+          <option value="draft">Draft</option>
+          <option value="open">Open</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="room_released">Room Released</option>
+          <option value="live">Live</option>
+          <option value="result_entry">Result Entry</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select class="form-select" id="filter-fee">
+          <option value="">All Fees</option>
+          <option value="10">₹10</option>
+          <option value="20">₹20</option>
+          <option value="30">₹30</option>
+          <option value="40">₹40</option>
+          <option value="50">₹50</option>
+          <option value="100">₹100</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="btn-filter-reset">✕ Reset</button>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh">↺ Refresh</button>
+      </div>
+
+      <!-- Table -->
+      <div class="card" style="padding:0">
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Code / Title</th>
+              <th>Entry Fee</th>
+              <th>Status</th>
+              <th>Players</th>
+              <th>Scheduled</th>
+              <th>Creator</th>
+            </tr></thead>
+            <tbody id="tourn-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="tourn-pagination"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Create Tournament Modal -->
+<div class="modal-overlay" id="modal-create-tourn">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title">Create Tournament</span>
+      <button class="modal-close" id="btn-close-create">✕</button>
+    </div>
+    <form id="create-tourn-form">
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input type="text" name="title" class="form-input" placeholder="e.g. AuraPlayFF Solo #42" required maxlength="120">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Entry Fee (₹)</label>
+          <select name="entry_fee" class="form-select" required>
+            <option value="">Select fee</option>
+            <option value="10">₹10</option>
+            <option value="20">₹20</option>
+            <option value="30">₹30</option>
+            <option value="40">₹40</option>
+            <option value="50">₹50</option>
+            <option value="100">₹100</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max Players</label>
+          <input type="number" name="max_players" class="form-input" value="50" min="2" max="50" required>
+          <span class="form-hint">Maximum 50 players per tournament.</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Scheduled Date</label>
+          <input type="date" name="scheduled_date" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Scheduled Time</label>
+          <input type="time" name="scheduled_time" class="form-input" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Min Players (target)</label>
+          <input type="number" name="min_players" class="form-input" value="2" min="2" max="50">
+          <span class="form-hint">Minimum players needed to start. Default: 2.</span>
+        </div>
+      </div>
+      <!-- Prize structure preview — updates when entry fee is selected -->
+      <div id="create-prize-preview" style="display:none;margin-bottom:16px;background:var(--color-bg-3);border:1px solid var(--color-border);border-radius:8px;padding:12px 16px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--color-text-muted);margin-bottom:8px">Prize Structure Preview</div>
+        <div id="create-prize-preview-content" style="font-size:12px;color:var(--color-text-muted)"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="btn-cancel-create">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btn-create-submit">Create &amp; Open Tournament</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/assets/js/admin/admin-config.js"></script>
+<script type="module">
+  import { requireAdminSession } from '/assets/js/admin/admin-auth.js';
+  import { initAdminLayout }    from '/assets/js/admin/admin-layout.js';
+  import { openModal, closeModal, setupModalClose } from '/assets/js/admin/admin-ui.js';
+  import { loadTournamentList, setupCreateTournamentModal, setupTournamentFilters } from '/assets/js/admin/admin-tournaments.js';
+
+  (async () => {
+    const profile = await requireAdminSession();
+    if (!profile) return;
+    await initAdminLayout({ page: 'tournaments', title: 'Tournaments' });
+
+    setupTournamentFilters();
+    setupCreateTournamentModal();
+    await loadTournamentList();
+
+    document.getElementById('btn-open-create').addEventListener('click', () => openModal('modal-create-tourn'));
+    document.getElementById('btn-close-create').addEventListener('click', () => closeModal('modal-create-tourn'));
+    document.getElementById('btn-cancel-create').addEventListener('click', () => closeModal('modal-create-tourn'));
+    setupModalClose('modal-create-tourn');
+    document.getElementById('btn-refresh').addEventListener('click', loadTournamentList);
+
+    // Set today's date as min for date input
+    const dateInput = document.querySelector('[name="scheduled_date"]');
+    if (dateInput) dateInput.min = new Date().toISOString().split('T')[0];
+  })();
+</script>
+</body>
+</html>

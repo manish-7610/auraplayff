@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Force browsers to always load the latest version of this page and its scripts -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Results — AuraPlayFF Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin-theme.css">
+  <style>
+    /* ── Tab strip ────────────────────────────────────────────────────────── */
+    .results-tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 2px solid var(--color-border);
+      margin-bottom: 20px;
+    }
+    .results-tab-btn {
+      padding: 10px 22px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .results-tab-btn.active {
+      color: var(--color-blue);
+      border-bottom-color: var(--color-blue);
+    }
+    .results-tab-btn:hover:not(.active) {
+      color: var(--color-text);
+    }
+    .results-tab-panel { display: none; }
+    .results-tab-panel.active { display: block; }
+
+    /* ── History filters bar ──────────────────────────────────────────────── */
+    .history-filters {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .history-filters .form-input {
+      max-width: 280px;
+      min-width: 180px;
+    }
+
+    /* ── History list table ───────────────────────────────────────────────── */
+    .history-tourn-row { cursor: pointer; }
+    .history-tourn-row:hover td { background: var(--color-bg-3) !important; }
+
+    /* ── Detail modal ─────────────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 1000;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+      overflow-y: auto;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--color-bg-2);
+      border-radius: 12px;
+      border: 1px solid var(--color-border);
+      width: 100%;
+      max-width: 1000px;
+      padding: 0;
+      overflow: hidden;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .modal-header h2 { font-size: 16px; font-weight: 700; margin: 0; }
+    .modal-close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      padding: 4px 8px;
+      line-height: 1;
+    }
+    .modal-close-btn:hover { color: var(--color-text); }
+    .modal-meta {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 13px;
+      background: var(--color-bg-3);
+    }
+    .modal-meta-item { display: flex; flex-direction: column; gap: 2px; }
+    .modal-meta-label { color: var(--color-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+    .modal-meta-value { font-weight: 600; }
+    .modal-body { padding: 0; }
+    .modal-readonly-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--color-bg-3);
+      border-bottom: 1px solid var(--color-border);
+      font-size: 12px;
+      color: var(--color-text-muted);
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* ── Responsive table inside modal ───────────────────────────────────── */
+    @media (max-width: 767px) {
+      .modal-overlay { padding: 0; align-items: stretch; }
+      .modal-box { border-radius: 0; max-width: 100%; min-height: 100vh; }
+      .history-filters .form-input { max-width: 100%; }
+      .results-tabs { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <div class="admin-main">
+    <div class="admin-topbar"></div>
+    <main class="admin-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Results & Winner Declaration</h1>
+          <p class="page-subtitle">Enter kills, placement, and declare winners. Backend calculates all prizes.</p>
+        </div>
+      </div>
+
+      <!-- ── Tab strip ──────────────────────────────────────────────────── -->
+      <div class="results-tabs" role="tablist">
+        <button class="results-tab-btn active" id="tab-btn-active"
+                role="tab" aria-selected="true"  aria-controls="tab-active"
+                data-tab="active">🎯 Active Results</button>
+        <button class="results-tab-btn"         id="tab-btn-history"
+                role="tab" aria-selected="false" aria-controls="tab-history"
+                data-tab="history">📋 Completed History</button>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           TAB 1 — Active Results  (unchanged)
+           ══════════════════════════════════════════════════════════════════ -->
+      <div id="tab-active" class="results-tab-panel active" role="tabpanel">
+
+        <!-- Tournament selector -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Select Tournament</label>
+            <select class="form-select" id="results-tourn-select" style="max-width:520px">
+              <option value="">Loading…</option>
+            </select>
+            <span class="form-hint">Shows tournaments in Live or Result Entry phase</span>
+          </div>
+        </div>
+
+        <!-- Results section (shown after tournament selected) -->
+        <div id="results-section" style="display:none">
+          <div id="results-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+            <!-- Existing results table -->
+            <div class="card" style="padding:0">
+              <div class="card-header" style="padding:16px 20px">
+                <span class="card-title">Entered Results</span>
+                <button class="btn btn-ghost btn-sm" id="btn-refresh-results">↺</button>
+              </div>
+              <div class="table-container" style="border:none">
+                <table>
+                  <thead><tr>
+                    <th>#</th><th>Player</th><th>FF UID</th><th style="text-align:right">Kills</th>
+                    <th>Prize</th><th>Kill Reward</th><th>Status</th>
+                  </tr></thead>
+                  <tbody id="results-tbody">
+                    <tr><td colspan="7" style="text-align:center;padding:24px"><div class="loading-spinner"></div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Enter result form -->
+            <div class="card">
+              <div class="card-header"><span class="card-title">Enter Result</span></div>
+              <form id="result-entry-form">
+                <div class="form-group">
+                  <label class="form-label">Player Entry</label>
+                  <select class="form-select" id="inp-entry-select" required>
+                    <option value="">Select player…</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Placement</label>
+                    <input type="number" id="inp-placement" class="form-input" min="1" max="50" placeholder="e.g. 1" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Kills</label>
+                    <input type="number" id="inp-kills" class="form-input" min="0" max="50" placeholder="e.g. 8" value="0">
+                  </div>
+                </div>
+
+                <!-- Kill reward preview (populated by JS via backend) -->
+                <div id="reward-preview" style="margin-bottom:16px"></div>
+
+                <div class="alert alert-info" style="margin-bottom:16px;font-size:12px">
+                  ℹ Backend calculates final prize + kill reward amounts. The preview above is indicative only.
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="btn-submit-result" style="width:100%;justify-content:center">
+                  Save Result
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Kill reward reference card -->
+          <div class="card" style="margin-top:20px">
+            <div class="card-header"><span class="card-title">Kill Reward Reference (₹50 tier example)</span></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;font-size:13px">
+              <div style="padding:10px;background:var(--color-bg-3);border-radius:8px">
+                <div style="font-weight:600;margin-bottom:4px">Kills 1–3</div>
+                <div style="color:var(--color-success)">₹5 each</div>
+              </div>
+              <div style="padding:10px;background:var(--color-bg-3);border-radius:8px">
+                <div style="font-weight:600;margin-bottom:4px">Kills 4–6</div>
+                <div style="color:var(--color-success)">₹7 each</div>
+              </div>
+              <div style="padding:10px;background:var(--color-bg-3);border-radius:8px">
+                <div style="font-weight:600;margin-bottom:4px">Kills 7+</div>
+                <div style="color:var(--color-success)">₹10 each</div>
+              </div>
+              <div style="padding:10px;background:var(--color-bg-3);border-radius:8px">
+                <div style="font-weight:600;margin-bottom:4px">Example: 8 kills</div>
+                <div style="color:var(--color-text-muted);font-size:12px">3×₹5(₹15) + 3×₹7(₹21) + 2×₹10(₹20) = <strong style="color:var(--color-success)">₹56</strong></div>
+              </div>
+            </div>
+            <p style="font-size:11px;color:var(--color-text-dim);margin-top:8px">Other tier structures are configured in the backend. Use the kill-reward-preview API for accurate values.</p>
+          </div>
+        </div>
+
+      </div><!-- /tab-active -->
+
+      <!-- ══════════════════════════════════════════════════════════════════
+           TAB 2 — Completed History  (read-only)
+           ══════════════════════════════════════════════════════════════════ -->
+      <div id="tab-history" class="results-tab-panel" role="tabpanel">
+
+        <!-- Filters -->
+        <div class="history-filters">
+          <input type="search" id="history-search" class="form-input"
+                 placeholder="Search by tournament ID or title…"
+                 aria-label="Search completed tournaments">
+          <button class="btn btn-ghost btn-sm" id="btn-history-refresh" title="Refresh">↺ Refresh</button>
+        </div>
+
+        <!-- Tournament list card -->
+        <div class="card" style="padding:0">
+          <div class="card-header" style="padding:16px 20px">
+            <span class="card-title">Completed Tournaments</span>
+            <span id="history-total-badge" class="chip" style="font-size:12px"></span>
+          </div>
+          <div class="table-container" style="border:none">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tournament</th>
+                  <th>Entry Fee</th>
+                  <th style="text-align:right">Players</th>
+                  <th style="text-align:right">Results</th>
+                  <th>Payout Status</th>
+                  <th>Completed</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="history-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:40px">
+                  <div class="loading-spinner"></div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="history-pagination" style="padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--color-border)"></div>
+        </div>
+
+      </div><!-- /tab-history -->
+
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     Completed Tournament Detail Modal  (read-only)
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="history-detail-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="detail-modal-title">Tournament Results</h2>
+      <button class="modal-close-btn" id="detail-modal-close" aria-label="Close">✕</button>
+    </div>
+
+    <!-- Tournament meta info row -->
+    <div class="modal-meta" id="detail-modal-meta">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Read-only banner -->
+    <div class="modal-readonly-badge">
+      🔒 Read-only — completed results cannot be edited
+    </div>
+
+    <!-- Results table -->
+    <div class="modal-body">
+      <div class="table-container" style="border:none;max-height:60vh;overflow-y:auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="position:sticky;top:0;background:var(--color-bg-2)">#</th>
+              <th style="position:sticky;top:0;background:var(--color-bg-2)">Player</th>
+              <th style="position:sticky;top:0;background:var(--color-bg-2)">FF UID</th>
+              <th style="text-align:right;position:sticky;top:0;background:var(--color-bg-2)">Kills</th>
+              <th style="text-align:right;position:sticky;top:0;background:var(--color-bg-2)">Prize</th>
+              <th style="text-align:right;position:sticky;top:0;background:var(--color-bg-2)">Kill Reward</th>
+              <th style="text-align:right;position:sticky;top:0;background:var(--color-bg-2)">Total Payout</th>
+              <th style="position:sticky;top:0;background:var(--color-bg-2)">Payout Status</th>
+            </tr>
+          </thead>
+          <tbody id="detail-results-tbody">
+            <tr><td colspan="8" style="text-align:center;padding:40px">
+              <div class="loading-spinner"></div>
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/admin/admin-config.js"></script>
+<script type="module">
+  import { requireAdminSession }    from '/assets/js/admin/admin-auth.js';
+  import { initAdminLayout }        from '/assets/js/admin/admin-layout.js';
+  import {
+    loadResultsTournamentList,
+    setupResultsTournamentSelect,
+    setupResultEntryForm,
+    initHistoryTab,
+  } from '/assets/js/admin/admin-results.js';
+
+  (async () => {
+    const profile = await requireAdminSession();
+    if (!profile) return;
+    await initAdminLayout({ page: 'results', title: 'Results' });
+
+    // ── Active Results tab (unchanged behaviour) ──────────────────────────
+    await loadResultsTournamentList();
+    setupResultsTournamentSelect();
+    setupResultEntryForm();
+
+    document.getElementById('btn-refresh-results')?.addEventListener('click', () => {
+      const sel = document.getElementById('results-tourn-select');
+      if (sel.value) sel.dispatchEvent(new Event('change'));
+    });
+
+    // Stack columns on mobile
+    if (window.innerWidth < 768) {
+      document.getElementById('results-grid')?.style.setProperty('grid-template-columns','1fr');
+    }
+
+    // ── Tab switching ─────────────────────────────────────────────────────
+    const tabBtns   = document.querySelectorAll('.results-tab-btn');
+    const tabPanels = document.querySelectorAll('.results-tab-panel');
+    let historyInitialised = false;
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+        tabPanels.forEach(p => p.classList.remove('active'));
+
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected','true');
+        const target = btn.dataset.tab;
+        document.getElementById(`tab-${target}`)?.classList.add('active');
+
+        if (target === 'history' && !historyInitialised) {
+          initHistoryTab();
+          historyInitialised = true;
+        }
+      });
+    });
+
+    // ── If URL has ?tab=history, open that tab immediately ────────────────
+    if (new URLSearchParams(location.search).get('tab') === 'history') {
+      document.getElementById('tab-btn-history')?.click();
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Prevent stale cached versions from being served -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Tournament — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    .detail-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-5); }
+    @media(min-width:700px){ .detail-grid { grid-template-columns: 1fr 340px; } }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-size: var(--text-sm); color: var(--color-text-muted); }
+    .info-value { font-size: var(--text-sm); font-weight: 600; text-align: right; }
+    .join-confirm-row { display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); }
+    .join-confirm-row:last-child { border-bottom: none; }
+    .join-amount { font-family: var(--font-mono); font-size: var(--text-base); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+      <div class="page-container">
+
+        <!-- Back nav -->
+        <a href="/tournaments.html" class="btn btn-ghost btn-sm" style="margin-bottom:var(--space-4)">← Back to Tournaments</a>
+
+        <!-- Loading state -->
+        <div id="loading-state">
+          <div class="card mb-4"><span class="skeleton skeleton-line medium" style="height:28px"></span></div>
+          <div class="detail-grid">
+            <div class="card"><span class="skeleton skeleton-line long mb-4"></span><span class="skeleton skeleton-line medium mb-4"></span><span class="skeleton skeleton-line long"></span></div>
+            <div class="card"><span class="skeleton skeleton-line medium mb-4"></span><span class="skeleton skeleton-line long"></span></div>
+          </div>
+        </div>
+
+        <!-- Error state -->
+        <div id="error-state" class="hidden"></div>
+
+        <!-- Content (hidden until loaded) -->
+        <div id="content" class="hidden">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-4" style="flex-wrap:wrap;gap:var(--space-3)">
+            <div>
+              <h1 class="page-title" id="t-title"></h1>
+              <div class="flex items-center gap-3" style="flex-wrap:wrap">
+                <span class="text-muted text-sm text-mono" id="t-code"></span>
+                <span id="t-status-badge"></span>
+              </div>
+            </div>
+            <div id="countdown-wrap" class="hidden">
+              <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:4px;text-align:center">Starts in</div>
+              <div id="countdown-el"></div>
+            </div>
+          </div>
+
+          <div class="detail-grid">
+
+            <!-- Left: details -->
+            <div style="display:flex;flex-direction:column;gap:var(--space-5)">
+
+              <!-- Tournament info card -->
+              <div class="card">
+                <h3 class="section-title mb-4">Tournament Details</h3>
+                <div id="t-info-rows"></div>
+              </div>
+
+              <!-- Prize structure (dynamic — loaded from backend prize config) -->
+              <div class="card" id="prize-structure-card">
+                <h3 class="section-title mb-4">💎 Prize Structure</h3>
+                <div id="prize-structure-content">
+                  <!-- Populated by renderPrizeStructure() in JS -->
+                  <div class="alert alert-info">
+                    <span class="alert-icon">ℹ</span>
+                    <span>Loading prize information…</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Results / room (conditionally shown) -->
+              <div id="room-section" class="hidden">
+                <div class="card">
+                  <h3 class="section-title mb-4">🚪 Room Credentials</h3>
+                  <div id="room-content"></div>
+                </div>
+              </div>
+
+              <!-- ── Room-released countdown (enrolled players only) ────────── -->
+              <div id="room-countdown-section" class="hidden">
+                <div class="card" style="text-align:center;padding:var(--space-6) var(--space-5)">
+                  <!-- Status label row -->
+                  <div id="rcd-status-row" style="margin-bottom:var(--space-4)"></div>
+                  <!-- Countdown or live banner — swapped by JS -->
+                  <div id="rcd-body"></div>
+                </div>
+              </div>
+
+              <div id="results-link-section" class="hidden">
+                <a id="results-link" href="#" class="btn btn-blue btn-full">View Tournament Results</a>
+              </div>
+
+            </div>
+
+            <!-- Right: join / entry panel -->
+            <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+
+              <!-- Entry info (if already joined) -->
+              <div id="entry-panel" class="hidden card">
+                <h3 class="section-title mb-4">Your Entry</h3>
+                <div style="text-align:center;margin-bottom:var(--space-4)">
+                  <div class="sheet-badge" style="display:inline-flex">
+                    <span class="sheet-badge-label">Sheet Number</span>
+                    <span class="sheet-badge-num" id="sheet-num">#—</span>
+                  </div>
+                </div>
+                <div id="entry-details"></div>
+              </div>
+
+              <!-- Join panel (if not joined and joinable) -->
+              <div id="join-panel" class="hidden card">
+                <h3 class="section-title mb-4">Join Tournament</h3>
+                <div id="join-wallet-info" class="mb-4" style="background:var(--color-bg-3);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4)">
+                  <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:var(--space-1)">Your available balance</div>
+                  <div style="font-family:var(--font-mono);font-weight:700" id="join-wallet-balance">Loading…</div>
+                </div>
+                <div class="alert alert-info mb-4">
+                  <span class="alert-icon">ℹ</span>
+                  <div>
+                    <div style="font-weight:600;margin-bottom:2px">Entry fee will be deducted</div>
+                    <div style="font-size:var(--text-xs)">Up to 50% can be paid from referral balance. The backend handles the exact split.</div>
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-full btn-lg" id="join-btn">Join for <span id="join-fee-label"></span></button>
+                <div id="join-error" class="alert alert-error mt-4" style="display:none">
+                  <span class="alert-icon">✕</span><span id="join-error-msg"></span>
+                </div>
+              </div>
+
+              <!-- Cancelled notice -->
+              <div id="cancelled-panel" class="hidden card">
+                <div class="alert alert-error">
+                  <span class="alert-icon">✕</span>
+                  <div>
+                    <div style="font-weight:600;margin-bottom:2px">Tournament Cancelled</div>
+                    <div id="cancel-reason" style="font-size:var(--text-xs)"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Status notice for non-joinable states -->
+              <div id="status-notice" class="hidden card">
+                <div id="status-notice-content"></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Join confirm modal -->
+  <div class="modal-overlay" id="join-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Confirm Entry</h3>
+        <button class="modal-close" data-close-modal>✕</button>
+      </div>
+      <p class="text-muted text-sm mb-4">You are about to join:</p>
+      <div style="background:var(--color-bg-3);border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-5)">
+        <div class="join-confirm-row">
+          <span class="info-label">Tournament</span>
+          <span class="join-amount" id="modal-t-name" style="font-size:var(--text-sm)"></span>
+        </div>
+        <div class="join-confirm-row">
+          <span class="info-label">Entry Fee</span>
+          <span class="join-amount text-accent" id="modal-entry-fee"></span>
+        </div>
+        <div class="join-confirm-row">
+          <span class="info-label">Deducted from</span>
+          <span class="join-amount" style="font-size:var(--text-sm)">Deposit + Referral Balance</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:var(--space-3)">
+        <button class="btn btn-outline flex-1" data-close-modal>Cancel</button>
+        <button class="btn btn-primary flex-1" id="confirm-join-btn">Confirm Join</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success modal -->
+  <div class="modal-overlay" id="success-modal">
+    <div class="modal" style="text-align:center">
+      <div style="font-size:56px;margin-bottom:var(--space-4)">🎉</div>
+      <h3 style="font-size:var(--text-xl);font-weight:800;margin-bottom:var(--space-3)">You're In!</h3>
+      <div style="color:var(--color-text-muted);font-size:var(--text-sm);margin-bottom:var(--space-5)">
+        You've successfully joined the tournament.
+      </div>
+      <div class="sheet-badge" style="display:inline-flex;margin-bottom:var(--space-6)">
+        <span class="sheet-badge-label">Your Sheet Number</span>
+        <span class="sheet-badge-num" id="success-sheet">#—</span>
+      </div>
+      <div id="success-breakdown" style="background:var(--color-bg-3);border-radius:var(--radius-md);padding:var(--space-4);margin-bottom:var(--space-5);text-align:left"></div>
+      <a href="/my-matches.html" class="btn btn-primary btn-full">View My Matches</a>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { requireAuth } from '/assets/js/auth.js';
+    import { initLayout } from '/assets/js/layout.js';
+    import { getTournament, joinTournament, getMyEntry, getRoomCredentials, isJoinable } from '/assets/js/tournaments.js';
+    import { getWallet } from '/assets/js/wallet.js';
+    import { statusBadge, formatDateTime, formatAmount, escapeHtml, startCountdown, setButtonLoading, openModal, closeModal, initModal, toastSuccess, toastError, errorState, copyToClipboard, setPageTitle } from '/assets/js/ui.js';
+
+    await requireAuth();
+    await initLayout();
+
+    const params = new URLSearchParams(window.location.search);
+    const tid = params.get('id');
+    if (!tid) { window.location.href = '/tournaments.html'; }
+
+    initModal('join-modal');
+
+    const loadingEl  = document.getElementById('loading-state');
+    const contentEl  = document.getElementById('content');
+    const errorEl    = document.getElementById('error-state');
+
+    let tournament = null;
+    let myEntry    = null;
+
+    // ── Countdown state ───────────────────────────────────────────────
+    // Holds the stop() function returned by startCountdown().
+    // Called before every re-render so stale intervals never accumulate.
+    let _stopCountdown = null;
+
+    // Holds the setInterval ID used for the post-zero live-poll loop.
+    let _livePollTimer = null;
+
+    /** Cancel any running countdown interval and live-poll loop. */
+    function _clearTimers() {
+      if (_stopCountdown) { _stopCountdown(); _stopCountdown = null; }
+      if (_livePollTimer) { clearInterval(_livePollTimer); _livePollTimer = null; }
+    }
+
+    /**
+     * Start polling the backend every 5 s after the countdown reaches zero.
+     * When the tournament status becomes 'live' (or later), reload the page
+     * so all UI reflects the real backend state.
+     * Stops automatically after 3 minutes to avoid infinite polling.
+     */
+    function _startLivePoll() {
+      if (_livePollTimer) return;           // already polling
+      const MAX_POLLS = 36;                 // 36 × 5 s = 3 minutes maximum
+      let polls = 0;
+      _livePollTimer = setInterval(async () => {
+        polls++;
+        try {
+          const t = await getTournament(tid);
+          if (t.status === 'live' || t.status === 'result_entry' ||
+              t.status === 'completed' || t.status === 'cancelled') {
+            clearInterval(_livePollTimer);
+            _livePollTimer = null;
+            // Full page reload so every panel reflects the authoritative state
+            window.location.reload();
+            return;
+          }
+        } catch { /* network hiccup — keep polling */ }
+        if (polls >= MAX_POLLS) {
+          clearInterval(_livePollTimer);
+          _livePollTimer = null;
+        }
+      }, 5000);
+    }
+
+    /**
+     * Render the #room-countdown-section for an enrolled player.
+     *
+     * status === 'room_released' and scheduledAt is in the FUTURE
+     *   → show 🟠 ROOM RELEASED + "Tournament Starts In" + live countdown
+     *
+     * status === 'room_released' and scheduledAt is in the PAST
+     * (scheduler hasn't fired yet, or is about to fire)
+     *   → show 🟠 ROOM RELEASED + "Starting soon…" + start live-poll
+     *
+     * status === 'live' (enrolled player loaded / refreshed after start)
+     *   → show 🔴 LIVE banner immediately, no countdown
+     */
+    function _renderRoomCountdown(status, scheduledAt) {
+      const section   = document.getElementById('room-countdown-section');
+      const statusRow = document.getElementById('rcd-status-row');
+      const body      = document.getElementById('rcd-body');
+      if (!section) return;
+
+      section.classList.remove('hidden');
+
+      if (status === 'live') {
+        // Backend already reports LIVE — show banner, no timer needed
+        statusRow.innerHTML = `
+          <span style="display:inline-flex;align-items:center;gap:var(--space-2);
+                        font-size:var(--text-sm);font-weight:700;
+                        color:var(--status-live)">
+            🔴 <span>LIVE</span>
+          </span>`;
+        body.innerHTML = `
+          <div style="font-size:var(--text-base);color:var(--color-text-muted);
+                      margin-top:var(--space-2)">
+            Tournament is now LIVE
+          </div>`;
+        return;
+      }
+
+      // status === 'room_released'
+      statusRow.innerHTML = `
+        <span style="display:inline-flex;align-items:center;gap:var(--space-2);
+                      font-size:var(--text-sm);font-weight:700;
+                      color:var(--status-released)">
+          🟠 <span>ROOM RELEASED</span>
+        </span>`;
+
+      const target = new Date(scheduledAt).getTime();
+      const remaining = target - Date.now();
+
+      if (remaining <= 0) {
+        // Scheduled time already passed — scheduler will fire any moment
+        body.innerHTML = `
+          <div style="font-size:var(--text-base);color:var(--color-text-muted);
+                      margin-top:var(--space-2)">
+            Starting soon…
+          </div>`;
+        _startLivePoll();
+        return;
+      }
+
+      // Scheduled time is in the future — show live countdown
+      body.innerHTML = `
+        <div style="font-size:var(--text-xs);color:var(--color-text-muted);
+                    letter-spacing:.5px;text-transform:uppercase;
+                    margin-bottom:var(--space-3);margin-top:var(--space-2)">
+          Tournament Starts In
+        </div>
+        <div id="rcd-timer" style="font-family:var(--font-mono);font-size:var(--text-2xl,2rem);
+                                    font-weight:800;color:var(--color-text);
+                                    letter-spacing:2px;line-height:1">
+          --:--:--
+        </div>`;
+
+      const timerEl = document.getElementById('rcd-timer');
+
+      // Inline tick function — recalculates from target on every call (no drift)
+      const tick = () => {
+        const diff = target - Date.now();
+        if (diff <= 0) {
+          // Reached zero: show 00:00:00 briefly then switch to "Starting soon…"
+          timerEl.textContent = '00:00:00';
+          _clearTimers();
+          // Brief pause so the player sees 00:00:00 before the banner changes
+          setTimeout(() => {
+            body.innerHTML = `
+              <div style="font-size:var(--text-base);color:var(--color-text-muted);
+                          margin-top:var(--space-2)">
+                Starting soon…
+              </div>`;
+            _startLivePoll();
+          }, 800);
+          return;
+        }
+        const h = Math.floor(diff / 3_600_000);
+        const m = Math.floor((diff % 3_600_000) / 60_000);
+        const s = Math.floor((diff % 60_000) / 1_000);
+        const pad = n => String(n).padStart(2, '0');
+        timerEl.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+      };
+
+      tick();  // paint immediately so there's no blank flash
+      const timerId = setInterval(tick, 1000);
+      _stopCountdown = () => clearInterval(timerId);
+    }
+
+    async function load() {
+      // Cancel any running timers from a previous render before fetching
+      _clearTimers();
+
+      loadingEl.classList.remove('hidden');
+      contentEl.classList.add('hidden');
+      errorEl.classList.add('hidden');
+
+      try {
+        [tournament, myEntry] = await Promise.allSettled([
+          getTournament(tid),
+          getMyEntry(tid),
+        ]).then(([t, e]) => [
+          t.status === 'fulfilled' ? t.value : null,
+          e.status === 'fulfilled' ? e.value : null,
+        ]);
+
+        if (!tournament) throw new Error('Tournament not found.');
+        render();
+      } catch (err) {
+        loadingEl.classList.add('hidden');
+        errorEl.innerHTML = errorState(err.message || 'Failed to load tournament.', load);
+        errorEl.classList.remove('hidden');
+      }
+    }
+
+    function render() {
+      // Cancel timers before every render (prevents stacked intervals on re-load)
+      _clearTimers();
+
+      loadingEl.classList.add('hidden');
+      setPageTitle(tournament.title);
+
+      document.getElementById('t-title').textContent = tournament.title;
+      document.getElementById('t-code').textContent = tournament.tournament_code;
+      document.getElementById('t-status-badge').innerHTML = statusBadge(tournament.status);
+      // entry fee is rendered by renderPrizeStructure() and join-fee-label below
+      document.getElementById('join-fee-label').textContent = formatAmount(tournament.entry_fee);
+      document.getElementById('modal-t-name').textContent = tournament.title;
+      document.getElementById('modal-entry-fee').textContent = formatAmount(tournament.entry_fee);
+
+      // Render prize structure from backend data
+      renderPrizeStructure(tournament);
+
+      // ── Header countdown-wrap (open / confirmed / room_released non-enrolled)
+      // For enrolled players in room_released/live the dedicated in-column card
+      // (#room-countdown-section) is used instead — it is more prominent and
+      // sits alongside the room credentials.
+      const showHeaderCountdown =
+        tournament.status === 'open' ||
+        tournament.status === 'confirmed' ||
+        (tournament.status === 'room_released' && !myEntry);
+
+      if (showHeaderCountdown) {
+        document.getElementById('countdown-wrap').classList.remove('hidden');
+        _stopCountdown = startCountdown(
+          document.getElementById('countdown-el'),
+          tournament.scheduled_at,
+        );
+      }
+
+      // Info rows
+      const infoRows = [
+        ['Game', 'Free Fire — Solo'],
+        ['Status', statusBadge(tournament.status)],
+        ['Scheduled', formatDateTime(tournament.scheduled_at)],
+        ['Players', `${tournament.player_count} / ${tournament.max_players}`],
+        ['Slots Remaining', tournament.slots_remaining],
+        ['Min Players to Start', tournament.min_players],
+        ['Created by', escapeHtml(tournament.created_by_display_name)],
+        ...(tournament.started_at   ? [['Started',   formatDateTime(tournament.started_at)]]   : []),
+        ...(tournament.completed_at ? [['Completed', formatDateTime(tournament.completed_at)]] : []),
+        ...(tournament.cancelled_at ? [['Cancelled', formatDateTime(tournament.cancelled_at)]] : []),
+      ];
+      document.getElementById('t-info-rows').innerHTML = infoRows.map(([label, value]) => `
+        <div class="info-row">
+          <span class="info-label">${escapeHtml(label)}</span>
+          <span class="info-value">${value}</span>
+        </div>`).join('');
+
+      // ── Panel visibility ────────────────────────────────────────────
+      const status = tournament.status;
+
+      if (status === 'cancelled') {
+        document.getElementById('cancelled-panel').classList.remove('hidden');
+        document.getElementById('cancel-reason').textContent = tournament.cancellation_reason || 'No reason provided.';
+      } else if (myEntry) {
+        showEntryPanel();
+      } else if (isJoinable(tournament)) {
+        showJoinPanel();
+      } else {
+        showStatusNotice(status);
+      }
+
+      // Room credentials (unchanged — works for room_released and live)
+      if (myEntry && (status === 'room_released' || status === 'live')) {
+        loadRoomCredentials();
+      }
+
+      // ── Room countdown / live card (enrolled players only) ──────────
+      // Shown when player has joined AND tournament is room_released or live.
+      if (myEntry && (status === 'room_released' || status === 'live')) {
+        _renderRoomCountdown(status, tournament.scheduled_at);
+      }
+
+      // Results link
+      if (status === 'result_entry' || status === 'completed') {
+        document.getElementById('results-link-section').classList.remove('hidden');
+        document.getElementById('results-link').href = `/results.html?id=${tid}`;
+      }
+
+      contentEl.classList.remove('hidden');
+    }
+
+    function showEntryPanel() {
+      const ep = document.getElementById('entry-panel');
+      ep.classList.remove('hidden');
+      document.getElementById('sheet-num').textContent = `#${myEntry.sheet_number}`;
+
+      document.getElementById('entry-details').innerHTML = `
+        <div class="info-row"><span class="info-label">Status</span><span class="info-value">${statusBadge(myEntry.status)}</span></div>
+        <div class="info-row"><span class="info-label">Entry Fee</span><span class="info-value text-accent">${formatAmount(myEntry.entry_fee)}</span></div>
+        <div class="info-row"><span class="info-label">Deposit Used</span><span class="info-value">${formatAmount(myEntry.deposit_used)}</span></div>
+        <div class="info-row"><span class="info-label">Referral Used</span><span class="info-value">${formatAmount(myEntry.referral_used)}</span></div>
+        <div class="info-row"><span class="info-label">Joined</span><span class="info-value">${formatDateTime(myEntry.joined_at)}</span></div>`;
+    }
+
+    async function showJoinPanel() {
+      document.getElementById('join-panel').classList.remove('hidden');
+      try {
+        const wallet = await getWallet();
+        const avail = parseFloat(wallet.deposit_balance) + parseFloat(wallet.referral_balance);
+        document.getElementById('join-wallet-balance').innerHTML =
+          `<span class="text-accent">${formatAmount(wallet.deposit_balance)}</span> deposit + <span style="color:var(--color-blue)">${formatAmount(wallet.referral_balance)}</span> referral`;
+        const fee = parseFloat(tournament.entry_fee);
+        if (avail < fee) {
+          document.getElementById('join-btn').disabled = true;
+          // Use innerHTML not textContent — textContent would destroy the
+          // inner <span id="join-fee-label"> child, making it null for other code.
+          document.getElementById('join-btn').innerHTML = 'Insufficient Balance';
+          document.getElementById('join-error').style.display = 'flex';
+          document.getElementById('join-error-msg').textContent = `You need at least ${formatAmount(tournament.entry_fee)} to join. Add money first.`;
+        }
+      } catch { /* balance load failed — still allow attempt */ }
+    }
+
+    function showStatusNotice(status) {
+      const notices = {
+        confirmed:     { icon: '⏳', text: 'Registration is closed. Tournament is confirmed and starting soon.' },
+        room_released: { icon: '🚪', text: 'Room credentials have been released to enrolled players.' },
+        live:          { icon: '🔴', text: 'This tournament is currently live!' },
+        result_entry:  { icon: '📊', text: 'Match over — results are being entered.' },
+        completed:     { icon: '✅', text: 'This tournament has concluded.' },
+      };
+      const n = notices[status];
+      if (n) {
+        document.getElementById('status-notice').classList.remove('hidden');
+        document.getElementById('status-notice-content').innerHTML = `
+          <div style="text-align:center;padding:var(--space-4)">
+            <div style="font-size:36px;margin-bottom:var(--space-3)">${n.icon}</div>
+            <div style="font-size:var(--text-sm);color:var(--color-text-muted)">${n.text}</div>
+          </div>`;
+      }
+    }
+
+    async function loadRoomCredentials() {
+      const roomSection = document.getElementById('room-section');
+      roomSection.classList.remove('hidden');
+      const content = document.getElementById('room-content');
+      content.innerHTML = '<div class="text-muted text-sm">Loading room credentials…</div>';
+      try {
+        const room = await getRoomCredentials(tid);
+        content.innerHTML = `
+          <div class="room-creds">
+            <div class="room-cred-row">
+              <div>
+                <div class="room-cred-label">Room ID</div>
+                <div class="room-cred-value" id="room-id-val">${escapeHtml(room.room_id)}</div>
+              </div>
+              <button class="copy-btn" onclick="copyField('room-id-val', this)">Copy</button>
+            </div>
+            <div class="room-cred-row">
+              <div>
+                <div class="room-cred-label">Password</div>
+                <div class="room-cred-value" id="room-pw-val">${escapeHtml(room.room_password)}</div>
+              </div>
+              <button class="copy-btn" onclick="copyField('room-pw-val', this)">Copy</button>
+            </div>
+          </div>
+          <div class="text-xs text-muted" style="margin-top:var(--space-3)">
+            Sheet #${room.sheet_number} · Released ${formatDateTime(room.room_released_at)}
+          </div>`;
+      } catch (err) {
+        content.innerHTML = `<div class="alert alert-warning"><span class="alert-icon">⚠</span>${escapeHtml(err.displayMessage || 'Room not available.')}</div>`;
+      }
+    }
+
+    // Make copyField available globally for inline onclick
+    window.copyField = async (elId, btn) => {
+      const val = document.getElementById(elId)?.textContent || '';
+      await copyToClipboard(val, btn);
+    };
+
+    // ── Join flow ─────────────────────────────────────────────────────
+    document.getElementById('join-btn')?.addEventListener('click', () => {
+      openModal('join-modal');
+    });
+
+    document.getElementById('confirm-join-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('confirm-join-btn');
+      setButtonLoading(btn, true);
+      try {
+        const result = await joinTournament(tid);
+        closeModal('join-modal');
+
+        // Show success modal
+        document.getElementById('success-sheet').textContent = `#${result.sheet_number}`;
+        document.getElementById('success-breakdown').innerHTML = `
+          <div class="join-confirm-row"><span class="info-label">Entry Fee</span><span class="join-amount text-accent">${formatAmount(result.entry_fee)}</span></div>
+          <div class="join-confirm-row"><span class="info-label">Deposit Used</span><span class="join-amount">${formatAmount(result.deposit_used)}</span></div>
+          <div class="join-confirm-row"><span class="info-label">Referral Used</span><span class="join-amount">${formatAmount(result.referral_used)}</span></div>
+          <div class="join-confirm-row" style="border:none"><span class="info-label">Total Paid</span><span class="join-amount text-accent">${formatAmount(result.total_paid)}</span></div>`;
+        openModal('success-modal');
+        myEntry = { ...result, status: 'active', joined_at: new Date().toISOString() };
+        load(); // Refresh tournament state
+      } catch (err) {
+        setButtonLoading(btn, false);
+        closeModal('join-modal');
+        const errEl = document.getElementById('join-error');
+        errEl.style.display = 'flex';
+        if (err.status === 409) {
+          document.getElementById('join-error-msg').textContent = 'You have already joined this tournament.';
+        } else if (err.status === 403 && err.code === 'FF_NAME_REQUIRED') {
+          // Player has no Free Fire name — send to mandatory onboarding
+          document.getElementById('join-error-msg').innerHTML =
+            'You must set your <strong>Free Fire Name</strong> before joining a tournament. ' +
+            '<a href="/profile.html?onboarding=1&next=' +
+            encodeURIComponent(window.location.pathname + window.location.search) +
+            '" style="color:var(--color-accent);font-weight:600">Set it now →</a>';
+        } else if (err.status === 400) {
+          document.getElementById('join-error-msg').textContent = err.displayMessage || 'Cannot join — check your balance or tournament status.';
+        } else {
+          document.getElementById('join-error-msg').textContent = err.displayMessage || 'Join failed. Please try again.';
+        }
+      }
+    });
+
+    // ── Prize structure renderer ──────────────────────────────────────────────
+    // Renders placement prizes and progressive kill reward tiers from backend.
+    // Falls back gracefully when no prize config is available.
+    function renderPrizeStructure(t) {
+      const container = document.getElementById('prize-structure-content');
+      if (!container) return;
+
+      const hasPrizes = t.first_place_prize != null;
+
+      if (!hasPrizes) {
+        container.innerHTML = `
+          <div class="alert alert-info">
+            <span class="alert-icon">ℹ</span>
+            <span>Prize details will be confirmed by the admin. All payouts are credited to your Winning Balance.</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Entry Fee</span>
+            <span class="info-value text-accent">${formatAmount(t.entry_fee)}</span>
+          </div>`;
+        return;
+      }
+
+      // Placement prizes
+      let html = `
+        <div class="info-row">
+          <span class="info-label">Entry Fee</span>
+          <span class="info-value text-accent">${formatAmount(t.entry_fee)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">🥇 1st Place</span>
+          <span class="info-value" style="color:var(--color-warning);font-weight:700">${formatAmount(t.first_place_prize)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">🥈 2nd Place</span>
+          <span class="info-value">${formatAmount(t.second_place_prize)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">🥉 3rd Place</span>
+          <span class="info-value">${formatAmount(t.third_place_prize)}</span>
+        </div>`;
+
+      // Kill reward tiers
+      if (t.kill_reward_tiers && t.kill_reward_tiers.length > 0) {
+        const topN = t.kill_reward_top_n || 10;
+        html += `
+          <div style="margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--color-border)">
+            <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-muted);margin-bottom:var(--space-3)">
+              ⚔ Kill Rewards — Top ${topN} Players
+            </div>`;
+        for (const tier of t.kill_reward_tiers) {
+          const rangeLabel = tier.to_kill != null
+            ? `Kills ${tier.from_kill}–${tier.to_kill}`
+            : `Kills ${tier.from_kill}+`;
+          html += `
+            <div class="info-row">
+              <span class="info-label">${rangeLabel}</span>
+              <span class="info-value" style="font-weight:700">${formatAmount(tier.reward_per_kill)} / kill</span>
+            </div>`;
+        }
+        html += `
+            <div style="margin-top:var(--space-3);padding:var(--space-3) var(--space-3);background:var(--color-bg-3);border-radius:var(--radius-sm);font-size:var(--text-xs);color:var(--color-text-muted);line-height:1.6">
+              <strong>Progressive calculation:</strong> only kills inside each bracket receive that bracket's reward.
+              Kill rewards are eligible for Top ${topN} finishing positions only.
+              All prizes credited to Winning Balance.
+            </div>
+          </div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    load();
+  </script>
+</body>
+</html>

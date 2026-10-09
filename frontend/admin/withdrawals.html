@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Withdrawals — AuraPlayFF Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin-theme.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <div class="admin-main">
+    <div class="admin-topbar"></div>
+    <main class="admin-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Withdrawals</h1>
+          <p class="page-subtitle">Process player withdrawal requests — Super Admin only</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary btn-sm" id="btn-refresh">↺ Refresh</button>
+        </div>
+      </div>
+
+      <div class="alert alert-warning" style="margin-bottom:16px">
+        ⚠ Marking a withdrawal as Paid will permanently debit the player's withdrawal hold. This cannot be reversed.
+      </div>
+
+      <div class="filters-bar">
+        <select class="form-select" id="filter-wd-status">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="processing">Processing</option>
+          <option value="paid">Paid</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="btn-wd-reset">✕ Reset</button>
+      </div>
+
+      <div class="card" style="padding:0">
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Username</th>
+              <th>UPI ID</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Payout UTR</th>
+              <th>Requested</th>
+              <th>Processed</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="withdrawals-tbody">
+              <tr><td colspan="8" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="withdrawals-pagination"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="/assets/js/admin/admin-config.js"></script>
+<script type="module">
+  import { requireAdminSession } from '/assets/js/admin/admin-auth.js';
+  import { initAdminLayout }    from '/assets/js/admin/admin-layout.js';
+  import { loadWithdrawals, setupWithdrawalFilters } from '/assets/js/admin/admin-finance.js';
+
+  (async () => {
+    const profile = await requireAdminSession();
+    if (!profile) return;
+    await initAdminLayout({ page: 'withdrawals', title: 'Withdrawals' });
+    setupWithdrawalFilters();
+    await loadWithdrawals();
+    document.getElementById('btn-refresh').addEventListener('click', loadWithdrawals);
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Help &amp; Support — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    .support-header {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      text-align: center;
+    }
+    .support-header-icon { font-size: 48px; margin-bottom: var(--space-3); }
+    .support-header-title { font-size: var(--text-xl); font-weight: 800; margin-bottom: var(--space-2); }
+    .support-header-sub { font-size: var(--text-sm); color: var(--color-text-muted); line-height: 1.6; max-width: 480px; margin: 0 auto; }
+
+    .req-list { display: flex; flex-direction: column; gap: var(--space-3); }
+    .req-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-4) var(--space-5);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-4);
+    }
+    .req-card-body { flex: 1; min-width: 0; }
+    .req-meta { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--space-1); }
+    .req-msg { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-2); white-space: pre-wrap; word-break: break-word; }
+    .req-reply {
+      margin-top: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-bg-3);
+      border-left: 3px solid var(--color-accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: var(--text-sm);
+    }
+    .req-reply-label { font-size: var(--text-xs); font-weight: 600; color: var(--color-accent); margin-bottom: var(--space-1); text-transform: uppercase; letter-spacing: .3px; }
+    .status-pending     { color: var(--color-warning); }
+    .status-in_progress { color: var(--color-blue, #3b82f6); }
+    .status-resolved    { color: var(--color-success); }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-placeholder"></div>
+  <div class="main-content">
+    <div id="topbar-placeholder"></div>
+    <div class="page-container">
+
+      <!-- Header -->
+      <div class="support-header">
+        <div class="support-header-icon">🆘</div>
+        <div class="support-header-title">Need Help?</div>
+        <div class="support-header-sub">
+          Tell us your problem and our support team will check it and help you as soon as possible.
+        </div>
+      </div>
+
+      <!-- Submit form -->
+      <div class="card mb-5" id="form-card">
+        <h3 class="section-title mb-4">Submit a Request</h3>
+
+        <!-- Success message (hidden by default) -->
+        <div id="form-success" class="alert alert-success hidden" style="margin-bottom:var(--space-4)">
+          <span class="alert-icon">✓</span>
+          <div>
+            <div style="font-weight:600">Your support request has been submitted.</div>
+            <div style="font-size:var(--text-xs);margin-top:2px">Our support team will check your issue and contact you soon.</div>
+          </div>
+        </div>
+
+        <form id="support-form" novalidate>
+          <!-- Tournament select -->
+          <div class="form-group">
+            <label class="form-label" for="field-tournament">Tournament <span style="color:var(--color-text-muted);font-weight:400">(optional)</span></label>
+            <select class="form-select" id="field-tournament" name="tournament_id">
+              <option value="">Loading your tournaments…</option>
+            </select>
+            <div class="form-hint">Select a tournament related to your issue, or leave as General.</div>
+          </div>
+
+          <!-- Message -->
+          <div class="form-group">
+            <label class="form-label" for="field-message">Describe your problem <span class="text-danger">*</span></label>
+            <textarea
+              class="form-textarea"
+              id="field-message"
+              name="message"
+              rows="5"
+              maxlength="2000"
+              placeholder="e.g. I joined the tournament but the room ID is not visible."
+              required
+            ></textarea>
+            <div class="form-hint">Required. Minimum 10 characters.</div>
+            <div class="form-error hidden" id="error-message"></div>
+          </div>
+
+          <!-- Contact: WhatsApp -->
+          <div class="form-group">
+            <label class="form-label" for="field-whatsapp">WhatsApp Number</label>
+            <input
+              class="form-input"
+              type="tel"
+              id="field-whatsapp"
+              name="whatsapp_number"
+              maxlength="30"
+              placeholder="+91 98765 43210"
+            >
+          </div>
+
+          <!-- Contact: Instagram -->
+          <div class="form-group">
+            <label class="form-label" for="field-instagram">Instagram ID</label>
+            <input
+              class="form-input"
+              type="text"
+              id="field-instagram"
+              name="instagram_id"
+              maxlength="80"
+              placeholder="your_ig_username"
+            >
+            <div class="form-hint">At least one contact method (WhatsApp or Instagram) is required.</div>
+            <div class="form-error hidden" id="error-contact"></div>
+          </div>
+
+          <!-- Submit -->
+          <div class="form-error hidden" id="error-general"></div>
+          <button class="btn btn-primary btn-full" type="submit" id="btn-submit">Submit Request</button>
+        </form>
+      </div>
+
+      <!-- My Requests -->
+      <div class="mb-4" style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap">
+        <h3 class="section-title" style="margin:0">My Support Requests</h3>
+        <button class="btn btn-ghost btn-sm" id="btn-refresh">↺ Refresh</button>
+      </div>
+
+      <div id="requests-loading" class="text-muted text-sm" style="text-align:center;padding:var(--space-6) 0">
+        <div class="loading-spinner" style="margin:0 auto var(--space-3)"></div>
+        Loading…
+      </div>
+      <div id="requests-empty" class="hidden" style="text-align:center;padding:var(--space-8) 0;color:var(--color-text-muted)">
+        <div style="font-size:36px;margin-bottom:var(--space-3)">📭</div>
+        <div>No support requests yet.</div>
+      </div>
+      <div id="requests-list" class="req-list hidden"></div>
+
+    </div>
+  </div>
+</div>
+<div id="bottom-nav-placeholder"></div>
+
+<script src="/assets/js/config.js"></script>
+<script type="module">
+  import { requireAuth }  from '/assets/js/auth.js';
+  import { initLayout }   from '/assets/js/layout.js';
+  import { initSupportPage } from '/assets/js/support.js';
+
+  await requireAuth();
+  await initLayout();
+  await initSupportPage();
+</script>
+</body>
+</html>

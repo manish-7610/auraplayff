@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallet — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    .tx-type-icon { width: 36px; height: 36px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .tx-credit  { background: rgba(45,214,107,.15); }
+    .tx-debit   { background: rgba(255,71,87,.15); }
+    .tx-row     { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) 0; border-bottom: 1px solid var(--color-border); }
+    .tx-row:last-child { border-bottom: none; }
+    .tx-info    { flex: 1; min-width: 0; }
+    .tx-desc    { font-size: var(--text-sm); font-weight: 600; }
+    .tx-meta    { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 2px; }
+    .tx-amount  { font-family: var(--font-mono); font-weight: 700; font-size: var(--text-base); text-align: right; white-space: nowrap; }
+    .quick-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); margin-bottom: var(--space-6); }
+    @media(min-width:480px) { .quick-actions { grid-template-columns: repeat(4, 1fr); } }
+    .quick-action-btn { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-4) var(--space-3); background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-lg); color: var(--color-text); text-decoration: none; font-size: var(--text-sm); font-weight: 600; transition: all var(--transition); cursor: pointer; }
+    .quick-action-btn:hover { border-color: var(--color-accent); background: var(--color-card-hover); text-decoration: none; }
+    .quick-action-icon { font-size: 24px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+      <div class="page-container">
+
+        <h1 class="page-title">Wallet</h1>
+        <p class="page-subtitle">Your balances and transaction history</p>
+
+        <!-- Balance cards -->
+        <div id="balance-loading" class="balance-grid">
+          <div class="balance-card"><span class="skeleton skeleton-line short mb-2"></span><span class="skeleton skeleton-line medium" style="height:28px"></span></div>
+          <div class="balance-card"><span class="skeleton skeleton-line short mb-2"></span><span class="skeleton skeleton-line medium" style="height:28px"></span></div>
+          <div class="balance-card"><span class="skeleton skeleton-line short mb-2"></span><span class="skeleton skeleton-line medium" style="height:28px"></span></div>
+          <div class="balance-card"><span class="skeleton skeleton-line short mb-2"></span><span class="skeleton skeleton-line medium" style="height:28px"></span></div>
+        </div>
+        <div id="balance-cards" class="hidden balance-grid"></div>
+        <div id="balance-error" class="hidden alert alert-error mb-6"></div>
+
+        <!-- Quick actions -->
+        <div class="quick-actions">
+          <a href="/deposit.html" class="quick-action-btn">
+            <span class="quick-action-icon">💳</span>Add Money
+          </a>
+          <a href="/withdrawal.html" class="quick-action-btn">
+            <span class="quick-action-icon">💸</span>Withdraw
+          </a>
+          <a href="/tournaments.html" class="quick-action-btn">
+            <span class="quick-action-icon">🏆</span>Play Now
+          </a>
+          <a href="/referral.html" class="quick-action-btn">
+            <span class="quick-action-icon">🤝</span>Refer & Earn
+          </a>
+        </div>
+
+        <!-- Transactions -->
+        <div class="flex items-center justify-between mb-4" style="flex-wrap:wrap;gap:var(--space-3)">
+          <h2 class="section-title" style="margin:0">Transaction History</h2>
+          <div style="display:flex;gap:var(--space-2)">
+            <select class="form-input" id="tx-type-filter" style="width:auto;padding:var(--space-2) var(--space-3);font-size:var(--text-sm)">
+              <option value="">All Types</option>
+              <option value="deposit">Deposit</option>
+              <option value="entry_fee">Entry Fee</option>
+              <option value="prize">Prize</option>
+              <option value="kill_reward">Kill Reward</option>
+              <option value="referral_bonus">Referral Bonus</option>
+              <option value="withdrawal_request">Withdrawal</option>
+              <option value="withdrawal_refund">Withdrawal Refund</option>
+              <option value="entry_fee_refund">Entry Refund</option>
+              <option value="admin_adjustment">Admin Adjustment</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden" id="tx-card">
+          <div id="tx-list" style="padding:0 var(--space-5)">
+            <div class="tx-row"><span class="skeleton skeleton-line long"></span></div>
+            <div class="tx-row"><span class="skeleton skeleton-line medium"></span></div>
+            <div class="tx-row"><span class="skeleton skeleton-line long"></span></div>
+          </div>
+          <div id="tx-empty" class="hidden"></div>
+          <div id="tx-error" class="hidden" style="padding:var(--space-4)"></div>
+        </div>
+
+        <div id="tx-pagination"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { requireAuth } from '/assets/js/auth.js';
+    import { initLayout } from '/assets/js/layout.js';
+    import { getWallet, getTransactions } from '/assets/js/wallet.js';
+    import { formatAmount, formatDateTime, timeAgo, emptyState, errorState, renderPagination, escapeHtml, setPageTitle, txDirectionIcon } from '/assets/js/ui.js';
+
+    await requireAuth();
+    await initLayout();
+    setPageTitle('Wallet');
+
+    const LIMIT = 20;
+    let currentOffset = 0;
+    let currentType   = '';
+
+    // ── Load balances ─────────────────────────────────────────────────
+    async function loadBalances() {
+      try {
+        const w = await getWallet();
+        document.getElementById('balance-loading').classList.add('hidden');
+        const container = document.getElementById('balance-cards');
+        container.innerHTML = `
+          <div class="balance-card accent-border">
+            <div class="balance-label">Deposit Balance</div>
+            <div class="balance-amount"><span class="currency">₹</span>${parseFloat(w.deposit_balance).toLocaleString('en-IN',{minimumFractionDigits:2})}</div>
+            <div class="text-xs text-muted" style="margin-top:4px">Withdrawable · Real money</div>
+          </div>
+          <div class="balance-card blue-border">
+            <div class="balance-label">Winning Balance</div>
+            <div class="balance-amount"><span class="currency">₹</span>${parseFloat(w.winning_balance).toLocaleString('en-IN',{minimumFractionDigits:2})}</div>
+            <div class="text-xs text-muted" style="margin-top:4px">Available: ${formatAmount(w.available_winning_balance)}</div>
+          </div>
+          <div class="balance-card">
+            <div class="balance-label">Referral Balance</div>
+            <div class="balance-amount" style="color:var(--color-blue)"><span class="currency" style="color:var(--color-text-muted)">₹</span>${parseFloat(w.referral_balance).toLocaleString('en-IN',{minimumFractionDigits:2})}</div>
+            <div class="text-xs text-muted" style="margin-top:4px">Non-withdrawable · Up to 50% per entry</div>
+          </div>
+          ${parseFloat(w.withdrawal_hold) > 0 ? `
+          <div class="balance-card warn-border">
+            <div class="balance-label">On Hold</div>
+            <div class="balance-amount" style="color:var(--color-warning)"><span class="currency" style="color:var(--color-text-muted)">₹</span>${parseFloat(w.withdrawal_hold).toLocaleString('en-IN',{minimumFractionDigits:2})}</div>
+            <div class="text-xs text-muted" style="margin-top:4px">Pending withdrawal</div>
+          </div>` : ''}`;
+        container.classList.remove('hidden');
+      } catch (err) {
+        document.getElementById('balance-loading').classList.add('hidden');
+        const errEl = document.getElementById('balance-error');
+        errEl.innerHTML = `<span class="alert-icon">✕</span>Failed to load wallet balances.`;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Load transactions ─────────────────────────────────────────────
+    async function loadTransactions() {
+      const listEl  = document.getElementById('tx-list');
+      const emptyEl = document.getElementById('tx-empty');
+      const errEl   = document.getElementById('tx-error');
+      const pagEl   = document.getElementById('tx-pagination');
+
+      emptyEl.classList.add('hidden');
+      errEl.classList.add('hidden');
+      listEl.innerHTML = `
+        <div class="tx-row"><span class="skeleton skeleton-line long"></span></div>
+        <div class="tx-row"><span class="skeleton skeleton-line medium"></span></div>
+        <div class="tx-row"><span class="skeleton skeleton-line long"></span></div>`;
+
+      const TX_ICONS = {
+        deposit: { icon: '💳', label: 'Deposit' },
+        entry_fee: { icon: '🎮', label: 'Tournament Entry' },
+        prize: { icon: '🏆', label: 'Prize' },
+        kill_reward: { icon: '⚡', label: 'Kill Reward' },
+        referral_bonus: { icon: '🤝', label: 'Referral Bonus' },
+        withdrawal_request: { icon: '💸', label: 'Withdrawal' },
+        withdrawal_completed: { icon: '✅', label: 'Withdrawal Paid' },
+        withdrawal_rejected: { icon: '↩️', label: 'Withdrawal Rejected' },
+        withdrawal_refund: { icon: '↩️', label: 'Withdrawal Refund' },
+        entry_fee_refund: { icon: '↩️', label: 'Entry Refund' },
+        admin_adjustment: { icon: '⚙️', label: 'Admin Adjustment' },
+        penalty: { icon: '⚠️', label: 'Penalty' },
+      };
+
+      const BALANCE_LABELS = {
+        deposit: 'Deposit Balance',
+        winning: 'Winning Balance',
+        referral: 'Referral Balance',
+      };
+
+      try {
+        const params = { limit: LIMIT, offset: currentOffset };
+        if (currentType) params.tx_type = currentType;
+        const data = await getTransactions(params);
+
+        listEl.innerHTML = '';
+        if (!data.items.length) {
+          emptyEl.innerHTML = emptyState({
+            icon: '📋', title: 'No transactions yet',
+            desc: currentType ? 'No transactions of this type found.' : 'Your transaction history will appear here.',
+          });
+          emptyEl.classList.remove('hidden');
+        } else {
+          listEl.innerHTML = data.items.map(tx => {
+            const meta  = TX_ICONS[tx.type] || { icon: '💰', label: tx.type };
+            const dir   = tx.direction === 'credit';
+            const amtCls = dir ? 'text-success' : 'text-danger';
+            const amtPfx = dir ? '+' : '−';
+            const balLabel = BALANCE_LABELS[tx.balance_column] || tx.balance_column;
+            return `
+              <div class="tx-row">
+                <div class="tx-type-icon ${dir ? 'tx-credit' : 'tx-debit'}">${meta.icon}</div>
+                <div class="tx-info">
+                  <div class="tx-desc">${escapeHtml(meta.label)}</div>
+                  <div class="tx-meta">${escapeHtml(balLabel)} · ${timeAgo(tx.created_at)}</div>
+                  ${tx.description ? `<div class="tx-meta">${escapeHtml(tx.description)}</div>` : ''}
+                </div>
+                <div>
+                  <div class="tx-amount ${amtCls}">${amtPfx}${formatAmount(tx.amount)}</div>
+                  <div class="text-xs text-muted text-right">Bal: ${formatAmount(tx.balance_after)}</div>
+                </div>
+              </div>`;
+          }).join('');
+
+          renderPagination(pagEl, data.total, LIMIT, currentOffset, (off) => {
+            currentOffset = off;
+            loadTransactions();
+            window.scrollTo({ top: document.getElementById('tx-card').offsetTop - 16, behavior: 'smooth' });
+          });
+        }
+      } catch (err) {
+        listEl.innerHTML = '';
+        errEl.innerHTML = errorState(err.displayMessage || 'Failed to load transactions.', loadTransactions);
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Type filter ───────────────────────────────────────────────────
+    document.getElementById('tx-type-filter').addEventListener('change', (e) => {
+      currentType   = e.target.value;
+      currentOffset = 0;
+      loadTransactions();
+    });
+
+    await Promise.all([loadBalances(), loadTransactions()]);
+  </script>
+</body>
+</html>

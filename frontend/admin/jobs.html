@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scheduler — AuraPlayFF Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin-theme.css">
+  <style>
+    #jobs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+    @media(max-width:480px){ #jobs-grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <div class="admin-main">
+    <div class="admin-topbar"></div>
+    <main class="admin-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Scheduler & Jobs</h1>
+          <p class="page-subtitle">Monitor automated jobs and trigger manually — Super Admin only</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary btn-sm" id="btn-refresh-all">↺ Refresh All</button>
+        </div>
+      </div>
+
+      <!-- Job cards -->
+      <div style="margin-bottom:8px">
+        <h2 style="font-size:15px;font-weight:600;color:var(--color-text-muted);margin-bottom:12px">JOB STATUS</h2>
+        <div id="jobs-grid">
+          <div style="text-align:center;padding:32px;grid-column:1/-1"><div class="loading-spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Execution history -->
+      <div style="margin-top:32px">
+        <h2 style="font-size:15px;font-weight:600;color:var(--color-text-muted);margin-bottom:12px">EXECUTION HISTORY</h2>
+
+        <div class="filters-bar">
+          <select class="form-select" id="filter-job-name">
+            <option value="">All Jobs</option>
+            <option value="tournament_auto_transition">tournament_auto_transition</option>
+            <option value="room_release_reminder">room_release_reminder</option>
+            <option value="daily_performance_refresh">daily_performance_refresh</option>
+            <option value="month_end_salary_snapshot">month_end_salary_snapshot</option>
+            <option value="screenshot_cleanup">screenshot_cleanup</option>
+            <option value="leaderboard_refresh">leaderboard_refresh</option>
+            <option value="active_user_metrics">active_user_metrics</option>
+          </select>
+          <select class="form-select" id="filter-job-status">
+            <option value="">All Statuses</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+            <option value="running">Running</option>
+            <option value="skipped">Skipped</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="btn-history-reset">✕ Reset</button>
+        </div>
+
+        <div class="card" style="padding:0">
+          <div class="table-container">
+            <table>
+              <thead><tr>
+                <th>Started</th>
+                <th>Job Name</th>
+                <th>Status</th>
+                <th style="text-align:right">Duration</th>
+                <th style="text-align:right">Records</th>
+                <th>Error</th>
+              </tr></thead>
+              <tbody id="history-tbody">
+                <tr><td colspan="6" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="history-pagination"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="/assets/js/admin/admin-config.js"></script>
+<script type="module">
+  import { requireAdminSession } from '/assets/js/admin/admin-auth.js';
+  import { initAdminLayout }    from '/assets/js/admin/admin-layout.js';
+  import { loadJobDashboard, loadJobHistory, setupJobHistoryFilters } from '/assets/js/admin/admin-jobs.js';
+
+  (async () => {
+    const profile = await requireAdminSession();
+    if (!profile) return;
+    await initAdminLayout({ page: 'jobs', title: 'Scheduler' });
+
+    await Promise.all([loadJobDashboard(), loadJobHistory()]);
+    setupJobHistoryFilters();
+
+    document.getElementById('btn-refresh-all').addEventListener('click', () => {
+      loadJobDashboard();
+      loadJobHistory();
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Referral — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    .stat-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .stat-card-label { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .5px; }
+    .stat-card-value { font-size: var(--text-xl); font-weight: 800; font-family: var(--font-mono); }
+    .referral-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) 0;
+      border-bottom: 1px solid var(--color-border);
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+    .referral-row:last-child { border-bottom: none; }
+    .referral-user { display: flex; flex-direction: column; gap: 2px; }
+    .referral-username { font-size: var(--text-sm); font-weight: 600; }
+    .referral-date { font-size: var(--text-xs); color: var(--color-text-muted); }
+    .step-row {
+      display: flex;
+      gap: var(--space-4);
+      align-items: flex-start;
+      padding: var(--space-4) 0;
+    }
+    .step-num {
+      width: 32px; height: 32px; min-width: 32px;
+      border-radius: var(--radius-full);
+      background: var(--color-accent);
+      color: #fff;
+      font-weight: 800;
+      font-size: var(--text-sm);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-content { flex: 1; }
+    .step-title { font-size: var(--text-sm); font-weight: 700; margin-bottom: 2px; }
+    .step-desc  { font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+      <div class="page-container" style="max-width:760px">
+
+        <h1 class="page-title">Referral Programme</h1>
+        <p class="page-subtitle">Invite friends and earn rewards together</p>
+
+        <!-- Loading skeleton -->
+        <div id="content-loading">
+          <div class="card mb-5"><span class="skeleton skeleton-line medium" style="height:20px;margin-bottom:8px"></span><span class="skeleton skeleton-line short" style="height:36px"></span></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-4);margin-bottom:var(--space-6)">
+            <div class="stat-card"><span class="skeleton skeleton-line short"></span><span class="skeleton skeleton-line medium" style="height:24px;margin-top:4px"></span></div>
+            <div class="stat-card"><span class="skeleton skeleton-line short"></span><span class="skeleton skeleton-line medium" style="height:24px;margin-top:4px"></span></div>
+            <div class="stat-card"><span class="skeleton skeleton-line short"></span><span class="skeleton skeleton-line medium" style="height:24px;margin-top:4px"></span></div>
+            <div class="stat-card"><span class="skeleton skeleton-line short"></span><span class="skeleton skeleton-line medium" style="height:24px;margin-top:4px"></span></div>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div id="content-error" class="hidden"></div>
+
+        <!-- Main content -->
+        <div id="content-main" class="hidden">
+
+          <!-- My referral code box -->
+          <div class="card mb-6" style="border-color:var(--color-accent)">
+            <div style="font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:var(--space-2)">Your Referral Code</div>
+            <div class="referral-code-box">
+              <div style="font-size:var(--text-sm);color:var(--color-text-muted);margin-bottom:var(--space-1)">Share this code with friends</div>
+              <div class="referral-code-value" id="my-ref-code">———</div>
+              <div style="display:flex;gap:var(--space-2);justify-content:center;margin-top:var(--space-3);flex-wrap:wrap">
+                <button class="btn btn-primary btn-sm" id="copy-code-btn">📋 Copy Code</button>
+                <button class="btn btn-outline btn-sm" id="copy-link-btn">🔗 Copy Link</button>
+                <button class="btn btn-outline btn-sm" id="share-btn" style="display:none">📤 Share</button>
+              </div>
+            </div>
+
+            <!-- Referral link preview -->
+            <div style="margin-top:var(--space-4);background:var(--color-bg-3);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);overflow:hidden">
+              <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:4px">Referral link</div>
+              <div id="referral-link-display" style="font-size:var(--text-xs);font-family:var(--font-mono);color:var(--color-blue);word-break:break-all;line-height:1.6"></div>
+            </div>
+          </div>
+
+          <!-- Referred-by notice (if applicable) -->
+          <div id="referred-by-section" class="hidden alert alert-info mb-6">
+            <span class="alert-icon">🤝</span>
+            <div>
+              <div style="font-weight:600;margin-bottom:2px">You were referred by <span id="referred-by-name"></span></div>
+              <div id="referred-by-status" style="font-size:var(--text-xs)"></div>
+            </div>
+          </div>
+
+          <!-- Stats strip -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-4);margin-bottom:var(--space-6)" id="stats-grid">
+            <div class="stat-card">
+              <div class="stat-card-label">Total Referred</div>
+              <div class="stat-card-value" id="stat-total">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Completed</div>
+              <div class="stat-card-value text-success" id="stat-completed">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Rewards Earned</div>
+              <div class="stat-card-value text-accent" id="stat-rewarded">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">Total Bonus</div>
+              <div class="stat-card-value text-accent" id="stat-bonus">₹0</div>
+            </div>
+          </div>
+
+          <!-- Referral balance from wallet -->
+          <div class="card mb-6" style="background:linear-gradient(135deg,rgba(78,158,255,.08),rgba(45,214,107,.05));border-color:var(--color-blue)">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-4)">
+              <div>
+                <div style="font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Your Referral Balance</div>
+                <div id="ref-balance-display" style="font-size:var(--text-xl);font-weight:900;font-family:var(--font-mono);color:var(--color-blue)">—</div>
+                <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:4px">Used automatically on tournament entry (up to 50% per entry fee)</div>
+              </div>
+              <a href="/tournaments.html" class="btn btn-outline btn-sm">Use in Tournament →</a>
+            </div>
+          </div>
+
+          <!-- How it works -->
+          <div class="card mb-6">
+            <h3 class="section-title mb-2">How It Works</h3>
+            <div class="step-row">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <div class="step-title">Share your referral code</div>
+                <div class="step-desc">Send your unique code or referral link to friends who play Free Fire.</div>
+              </div>
+            </div>
+            <div style="width:2px;height:16px;background:var(--color-border);margin-left:15px"></div>
+            <div class="step-row">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <div class="step-title">Friend registers using your code</div>
+                <div class="step-desc">They enter your code at signup. Both of you are linked in the referral system.</div>
+              </div>
+            </div>
+            <div style="width:2px;height:16px;background:var(--color-border);margin-left:15px"></div>
+            <div class="step-row">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <div class="step-title">Friend plays their first tournament</div>
+                <div class="step-desc">Once they complete their first tournament, the reward is activated.</div>
+              </div>
+            </div>
+            <div style="width:2px;height:16px;background:var(--color-border);margin-left:15px"></div>
+            <div class="step-row" style="border:none">
+              <div class="step-num" style="background:var(--color-success)">₹</div>
+              <div class="step-content">
+                <div class="step-title">Both earn <span id="reward-per-ref">₹20</span> referral bonus</div>
+                <div class="step-desc">Credited to your referral balance — usable on tournament entry fees (up to 50% per entry). Not withdrawable.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Referral list -->
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="section-title" style="margin:0">Your Referrals</h2>
+            <span id="referral-count-label" class="text-sm text-muted"></span>
+          </div>
+          <div class="card" style="padding:0 var(--space-5)" id="referral-list-card">
+            <div id="referral-list"></div>
+            <div id="referral-list-empty" class="hidden"></div>
+            <div id="referral-list-error" class="hidden" style="padding:var(--space-4)"></div>
+          </div>
+          <div id="referral-pagination"></div>
+
+        </div><!-- /content-main -->
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { requireAuth } from '/assets/js/auth.js';
+    import { initLayout } from '/assets/js/layout.js';
+    import { getReferralInfo, getReferralList, getWallet } from '/assets/js/wallet.js';
+    import {
+      formatAmount, formatDate, timeAgo,
+      emptyState, errorState, renderPagination, escapeHtml,
+      toastSuccess, setPageTitle, copyToClipboard
+    } from '/assets/js/ui.js';
+
+    await requireAuth();
+    await initLayout();
+    setPageTitle('Referral');
+
+    const LIMIT  = 15;
+    let refOffset = 0;
+    let myCode    = '';
+
+    // ── REFERRAL STATUS LABELS ────────────────────────────────────────
+    const REFERRAL_STATUS = {
+      pending:   { label: 'Pending',   cls: 'badge-pending',   desc: 'Waiting for first tournament' },
+      completed: { label: 'Played',    cls: 'badge-confirmed', desc: 'First tournament completed' },
+      rewarded:  { label: 'Rewarded',  cls: 'badge-paid',      desc: 'Reward credited to both' },
+    };
+
+    // ── Load referral info + wallet ───────────────────────────────────
+    async function loadInfo() {
+      try {
+        const [info, wallet] = await Promise.all([
+          getReferralInfo(),
+          getWallet(),
+        ]);
+
+        myCode = info.my_referral_code;
+        const link = `${window.location.origin}/register.html?ref=${myCode}`;
+
+        // Populate code & link
+        document.getElementById('my-ref-code').textContent = myCode;
+        document.getElementById('referral-link-display').textContent = link;
+
+        // Share API
+        if (navigator.share) {
+          const shareBtn = document.getElementById('share-btn');
+          shareBtn.style.display = '';
+          shareBtn.addEventListener('click', () =>
+            navigator.share({ title: 'Join AuraPlayFF', text: `Use my referral code ${myCode} and earn ₹20!`, url: link })
+          );
+        }
+
+        // Copy buttons
+        document.getElementById('copy-code-btn').addEventListener('click', function() {
+          copyToClipboard(myCode, this).then(() => toastSuccess('Code copied!'));
+        });
+        document.getElementById('copy-link-btn').addEventListener('click', function() {
+          copyToClipboard(link, this).then(() => toastSuccess('Link copied!'));
+        });
+
+        // Referred-by section
+        if (info.referred_by_username) {
+          document.getElementById('referred-by-section').classList.remove('hidden');
+          document.getElementById('referred-by-name').textContent = info.referred_by_username;
+          const status = REFERRAL_STATUS[info.referral_status] || { label: info.referral_status, desc: '' };
+          document.getElementById('referred-by-status').textContent =
+            `Status: ${status.label}. ${status.desc}`;
+        }
+
+        // Stats
+        document.getElementById('stat-total').textContent     = info.total_referrals_made;
+        document.getElementById('stat-completed').textContent = info.completed_referrals;
+        document.getElementById('stat-rewarded').textContent  = info.rewarded_referrals;
+        document.getElementById('stat-bonus').textContent     = formatAmount(info.total_bonus_earned);
+        document.getElementById('reward-per-ref').textContent = formatAmount(info.reward_per_referral);
+
+        // Referral balance from wallet
+        document.getElementById('ref-balance-display').textContent =
+          formatAmount(wallet.referral_balance);
+
+        document.getElementById('content-loading').classList.add('hidden');
+        document.getElementById('content-main').classList.remove('hidden');
+
+        loadReferralList();
+      } catch (err) {
+        document.getElementById('content-loading').classList.add('hidden');
+        document.getElementById('content-error').innerHTML =
+          errorState(err.displayMessage || 'Failed to load referral data.', loadInfo);
+        document.getElementById('content-error').classList.remove('hidden');
+      }
+    }
+
+    // ── Referral list ─────────────────────────────────────────────────
+    async function loadReferralList() {
+      const listEl  = document.getElementById('referral-list');
+      const emptyEl = document.getElementById('referral-list-empty');
+      const errEl   = document.getElementById('referral-list-error');
+      const pagEl   = document.getElementById('referral-pagination');
+      const cntEl   = document.getElementById('referral-count-label');
+
+      listEl.innerHTML = `
+        <div class="referral-row"><span class="skeleton skeleton-line long"></span></div>
+        <div class="referral-row"><span class="skeleton skeleton-line medium"></span></div>`;
+      emptyEl.classList.add('hidden');
+      errEl.classList.add('hidden');
+
+      try {
+        const data = await getReferralList({ limit: LIMIT, offset: refOffset });
+        listEl.innerHTML = '';
+        cntEl.textContent = `${data.total} referral${data.total !== 1 ? 's' : ''}`;
+
+        if (!data.items.length) {
+          emptyEl.innerHTML = emptyState({
+            icon: '🤝',
+            title: 'No referrals yet',
+            desc: 'Share your code to start earning rewards.',
+            action: `<button class="btn btn-primary" style="margin-top:var(--space-4)" onclick="document.getElementById('copy-link-btn').click()">Copy Referral Link</button>`,
+          });
+          emptyEl.classList.remove('hidden');
+        } else {
+          listEl.innerHTML = data.items.map(ref => {
+            // Determine status from fields
+            let status = 'pending';
+            if (ref.referrer_rewarded)         status = 'rewarded';
+            else if (ref.first_tournament_completed) status = 'completed';
+
+            const st   = REFERRAL_STATUS[status];
+            const pill = `<span class="badge ${st.cls}">${st.label}</span>`;
+            const reward = ref.referrer_rewarded
+              ? `<span class="text-success text-sm fw-700">+₹20 earned</span>`
+              : `<span class="text-xs text-muted">${st.desc}</span>`;
+
+            return `
+              <div class="referral-row">
+                <div class="referral-user">
+                  <span class="referral-username">👤 ${escapeHtml(ref.referred_username)}</span>
+                  <span class="referral-date">Joined ${formatDate(ref.created_at)}</span>
+                  ${ref.first_tournament_completed_at
+                    ? `<span class="referral-date" style="color:var(--color-success)">✓ Played first tournament ${formatDate(ref.first_tournament_completed_at)}</span>`
+                    : ''}
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                  ${pill}
+                  ${reward}
+                </div>
+              </div>`;
+          }).join('');
+
+          renderPagination(pagEl, data.total, LIMIT, refOffset, newOff => {
+            refOffset = newOff;
+            loadReferralList();
+            window.scrollTo({ top: document.getElementById('referral-list-card').offsetTop - 16, behavior: 'smooth' });
+          });
+        }
+      } catch (err) {
+        listEl.innerHTML = '';
+        errEl.innerHTML = errorState(err.displayMessage || 'Failed to load referrals.', loadReferralList);
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    loadInfo();
+  </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agents — AuraPlayFF Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin-theme.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <div class="admin-main">
+    <div class="admin-topbar"></div>
+    <main class="admin-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Agents</h1>
+          <p class="page-subtitle">Create and manage agent accounts — Super Admin only</p>
+        </div>
+        <div class="page-header-actions admin-only">
+          <button class="btn btn-primary" id="btn-create-agent">+ Create Agent</button>
+          <button class="btn btn-secondary btn-sm" id="btn-refresh">↺ Refresh</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0">
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Agent ID</th>
+              <th>Display Name</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th class="admin-only">Actions</th>
+            </tr></thead>
+            <tbody id="agents-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:32px"><div class="loading-spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="agents-pagination"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Create Agent Modal -->
+<div class="modal-overlay" id="modal-create-agent">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <span class="modal-title">Create Agent</span>
+      <button class="modal-close" id="btn-close-agent-modal">✕</button>
+    </div>
+    <form id="create-agent-form">
+      <div class="alert alert-info" style="margin-bottom:16px;font-size:12px">
+        Agent ID is auto-generated (e.g. AGT-0001). Share credentials securely with the agent.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Display Name</label>
+        <input type="text" name="display_name" class="form-input" placeholder="e.g. Rahul Kumar" required maxlength="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Initial Password</label>
+        <input type="password" name="password" class="form-input" placeholder="Min 8 characters" required minlength="8" maxlength="128">
+        <span class="form-hint">Agent should change this on first login.</span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="btn-cancel-agent">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btn-agent-submit">Create Agent</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/assets/js/admin/admin-config.js"></script>
+<script type="module">
+  import { requireAdminSession } from '/assets/js/admin/admin-auth.js';
+  import { initAdminLayout }    from '/assets/js/admin/admin-layout.js';
+  import { openModal, closeModal, setupModalClose } from '/assets/js/admin/admin-ui.js';
+  import { loadAgentList, setupCreateAgentModal } from '/assets/js/admin/admin-agents.js';
+
+  (async () => {
+    const profile = await requireAdminSession();
+    if (!profile) return;
+    await initAdminLayout({ page: 'agents', title: 'Agents' });
+
+    setupCreateAgentModal();
+    await loadAgentList();
+
+    document.getElementById('btn-create-agent').addEventListener('click', () => openModal('modal-create-agent'));
+    document.getElementById('btn-close-agent-modal').addEventListener('click', () => closeModal('modal-create-agent'));
+    document.getElementById('btn-cancel-agent').addEventListener('click', () => closeModal('modal-create-agent'));
+    setupModalClose('modal-create-agent');
+    document.getElementById('btn-refresh').addEventListener('click', loadAgentList);
+  })();
+</script>
+</body>
+</html>

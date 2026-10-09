@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — AuraPlayFF Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin-theme.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="admin-shell">
+  <div class="admin-main">
+    <div class="admin-topbar"></div>
+    <main class="admin-content">
+
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Platform Settings</h1>
+          <p class="page-subtitle">Runtime-configurable platform values — Super Admin only. Secrets are NEVER stored here.</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary btn-sm" id="btn-settings-refresh">↺ Refresh</button>
+        </div>
+      </div>
+
+      <div class="alert alert-warning" style="margin-bottom:20px">
+        ⚠ Only edit values shown here. JWT secrets, database passwords, Razorpay secrets, and Supabase keys are environment variables and cannot be changed from this UI.
+      </div>
+
+      <div id="settings-list">
+        <div style="text-align:center;padding:40px"><div class="loading-spinner"></div></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Edit modal -->
+<div class="modal-overlay" id="modal-edit-setting">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <span class="modal-title">Edit Setting</span>
+      <button class="modal-close" id="btn-setting-modal-close">✕</button>
+    </div>
+    <form id="setting-edit-form">
+      <div class="form-group">
+        <label class="form-label">Key</label>
+        <input type="text" id="setting-key-display" class="form-input" readonly style="opacity:.6">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Current Value</label>
+        <div id="setting-current" style="font-size:13px;color:var(--color-text-muted);padding:4px 0"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Value</label>
+        <input type="text" id="setting-new-value" class="form-input" required maxlength="2000">
+        <span class="form-hint" id="setting-hint"></span>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="btn-setting-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btn-setting-save">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/assets/js/admin/admin-config.js"></script>
+<script type="module">
+  import { requireAdminSession }        from '/assets/js/admin/admin-auth.js';
+  import { adminGet, adminPut, isSuper } from '/assets/js/admin/admin-api.js';
+  import { initAdminLayout }            from '/assets/js/admin/admin-layout.js';
+  import { showToast, escHtml, openModal, closeModal, setupModalClose } from '/assets/js/admin/admin-ui.js';
+
+  // Setting descriptions — never expose secrets
+  const SETTING_HINTS = {
+    min_withdrawal_amount:         'Minimum amount a player can withdraw (e.g. "100.00")',
+    min_deposit_amount:            'Minimum deposit amount (e.g. "10.00")',
+    max_deposit_amount:            'Maximum deposit per transaction (e.g. "50000.00")',
+    upi_id:                        'Platform UPI ID shown to players for manual deposits',
+    upi_display_name:              'Display name shown next to UPI ID',
+    manual_deposit_instructions:   'Instructions shown to players for manual UPI deposits',
+    qr_storage_ref:                'Supabase storage path for QR code image (internal path only)',
+    withdrawal_enabled:            '"true" or "false" — disables all withdrawal requests when false',
+    online_deposit_enabled:        '"true" or "false" — disables Razorpay online deposits when false',
+    deposit_methods_enabled:       'JSON array e.g. ["online","manual"]',
+  };
+
+  // Keys we refuse to show value for (safety belt — these should never be in DB)
+  const HIDDEN_KEYS = ['jwt_secret', 'db_password', 'razorpay_secret', 'supabase_key', 'service_role'];
+
+  let _settings = [];
+  let _editKey  = null;
+
+  async function loadSettings() {
+    if (!isSuper()) {
+      document.getElementById('settings-list').innerHTML =
+        '<div class="alert alert-warning">🔒 Settings access is restricted to Super Admin.</div>';
+      return;
+    }
+    try {
+      const data = await adminGet('/api/admin/settings');
+      _settings = (data.settings || []).filter(s => !HIDDEN_KEYS.some(k => s.key.toLowerCase().includes(k)));
+      _renderSettings();
+    } catch (err) {
+      document.getElementById('settings-list').innerHTML =
+        `<div class="alert alert-error">⚠ ${escHtml(err.displayMessage || 'Failed to load settings')}</div>`;
+    }
+  }
+
+  function _renderSettings() {
+    const el = document.getElementById('settings-list');
+    if (!_settings.length) {
+      el.innerHTML = '<p style="color:var(--color-text-muted)">No settings found.</p>';
+      return;
+    }
+    el.innerHTML = _settings.map(s => `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:0">
+            <div style="font-family:var(--font-mono);font-weight:700;font-size:13px;color:var(--color-accent)">${escHtml(s.key)}</div>
+            ${SETTING_HINTS[s.key] ? `<div style="font-size:12px;color:var(--color-text-muted);margin-top:2px">${escHtml(SETTING_HINTS[s.key])}</div>` : ''}
+            <div style="margin-top:6px;font-size:13px;background:var(--color-bg-3);padding:6px 10px;border-radius:6px;word-break:break-all">
+              ${escHtml(s.value || '(empty)')}
+            </div>
+            <div style="font-size:11px;color:var(--color-text-dim);margin-top:4px">
+              Last updated: ${s.updated_at ? new Date(s.updated_at).toLocaleString('en-IN') : '—'}
+              ${s.updated_by ? ` by ${escHtml(s.updated_by)}` : ''}
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" data-key="${escHtml(s.key)}" data-val="${escHtml(s.value || '')}">✏ Edit</button>
+        </div>
+      </div>`).join('');
+
+    el.querySelectorAll('[data-key]').forEach(btn => {
+      btn.addEventListener('click', () => _openEditModal(btn.dataset.key, btn.dataset.val));
+    });
+  }
+
+  function _openEditModal(key, currentVal) {
+    _editKey = key;
+    document.getElementById('setting-key-display').value  = key;
+    document.getElementById('setting-current').textContent = currentVal || '(empty)';
+    document.getElementById('setting-new-value').value    = currentVal || '';
+    document.getElementById('setting-hint').textContent   = SETTING_HINTS[key] || '';
+    openModal('modal-edit-setting');
+    document.getElementById('setting-new-value').focus();
+  }
+
+  (async () => {
+    const profile = await requireAdminSession();
+    if (!profile) return;
+    await initAdminLayout({ page: 'settings', title: 'Platform Settings' });
+
+    await loadSettings();
+    document.getElementById('btn-settings-refresh').addEventListener('click', loadSettings);
+
+    document.getElementById('btn-setting-modal-close').addEventListener('click', () => closeModal('modal-edit-setting'));
+    document.getElementById('btn-setting-cancel').addEventListener('click',     () => closeModal('modal-edit-setting'));
+    setupModalClose('modal-edit-setting');
+
+    document.getElementById('setting-edit-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      if (!_editKey) return;
+      const btn = document.getElementById('btn-setting-save');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        await adminPut(`/api/admin/settings/${encodeURIComponent(_editKey)}`, {
+          value: document.getElementById('setting-new-value').value,
+        });
+        showToast('Setting updated', 'success');
+        closeModal('modal-edit-setting');
+        await loadSettings();
+      } catch (err) {
+        showToast(err.displayMessage || 'Save failed', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save';
+      }
+    });
+  })();
+</script>
+</body>
+</html>

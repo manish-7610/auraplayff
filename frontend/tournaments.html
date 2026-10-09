@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Force browsers to always fetch the latest version of this page and its scripts -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Tournaments — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+      <div class="page-container">
+
+        <div class="flex items-center justify-between mb-4" style="flex-wrap:wrap;gap:var(--space-3)">
+          <div>
+            <h1 class="page-title">Tournaments</h1>
+            <p class="page-subtitle" style="margin:0">Browse and join upcoming Free Fire solo tournaments</p>
+          </div>
+        </div>
+
+        <!-- Status filters -->
+        <div class="filters-bar" id="filters-bar">
+          <button class="filter-chip active" data-status="open">Open</button>
+          <button class="filter-chip" data-status="confirmed">Confirmed</button>
+          <button class="filter-chip" data-status="live">🔴 Live</button>
+          <button class="filter-chip" data-status="completed">Completed</button>
+          <button class="filter-chip" data-status="all">All</button>
+        </div>
+
+        <!-- Entry fee filters -->
+        <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-5);flex-wrap:wrap">
+          <span class="text-sm text-muted">Entry Fee:</span>
+          <div id="fee-filters" class="filters-bar" style="margin:0">
+            <button class="filter-chip active" data-fee="">Any</button>
+            <button class="filter-chip" data-fee="10">₹10</button>
+            <button class="filter-chip" data-fee="20">₹20</button>
+            <button class="filter-chip" data-fee="30">₹30</button>
+            <button class="filter-chip" data-fee="40">₹40</button>
+            <button class="filter-chip" data-fee="50">₹50</button>
+            <button class="filter-chip" data-fee="100">₹100</button>
+          </div>
+        </div>
+
+        <!-- Result count -->
+        <div id="result-count" class="text-sm text-muted mb-4"></div>
+
+        <!-- Tournament grid -->
+        <div id="tournament-grid" class="tournament-grid"></div>
+        <div id="tournament-empty" class="hidden"></div>
+        <div id="tournament-error" class="hidden"></div>
+
+        <!-- Pagination -->
+        <div id="pagination"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    // ── v2025-09-27-A ── if you see this in console the fresh file is loaded
+    console.log('[tournaments] page script v2025-09-27-A loaded');
+
+    import { requireAuth } from '/assets/js/auth.js';
+    import { initLayout } from '/assets/js/layout.js';
+    import { listTournaments, isJoinable, slotPercentage } from '/assets/js/tournaments.js';
+    import {
+      statusBadge, formatDateTime, formatAmount, escapeHtml,
+      emptyState, errorState, skeletonCard, renderPagination,
+      startCountdown, setPageTitle,
+    } from '/assets/js/ui.js';
+
+    await requireAuth();
+    await initLayout();
+    setPageTitle('Tournaments');
+
+    const LIMIT = 12;
+    let currentStatus  = 'open';
+    let currentFee     = '';
+    let currentOffset  = 0;
+    let stopCountdowns = [];
+
+    // Read ?status= from URL
+    const _urlParams = new URLSearchParams(window.location.search);
+    if (_urlParams.get('status')) currentStatus = _urlParams.get('status');
+
+    // Activate the correct status chip on load
+    document.querySelectorAll('#filters-bar .filter-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.status === currentStatus);
+    });
+
+    // ── Status filter clicks ──────────────────────────────────────────────────
+    document.getElementById('filters-bar').addEventListener('click', e => {
+      const chip = e.target.closest('[data-status]');
+      if (!chip) return;
+      currentStatus = chip.dataset.status;
+      currentOffset = 0;
+      document.querySelectorAll('#filters-bar .filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      load();
+    });
+
+    // ── Entry fee filter clicks ───────────────────────────────────────────────
+    document.getElementById('fee-filters').addEventListener('click', e => {
+      const chip = e.target.closest('[data-fee]');
+      if (!chip) return;
+      currentFee    = chip.dataset.fee;
+      currentOffset = 0;
+      document.querySelectorAll('#fee-filters .filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      load();
+    });
+
+    // ── Card builder ──────────────────────────────────────────────────────────
+    function buildCard(t) {
+      const pct      = slotPercentage(t);
+      const joinable = isJoinable(t);
+
+      const cta = joinable
+        ? `<a href="/tournament-details.html?id=${t.id}" class="btn btn-primary btn-sm">Join ₹${parseFloat(t.entry_fee)}</a>`
+        : t.already_joined
+          ? `<a href="/my-matches.html" class="btn btn-outline btn-sm">Joined ✓</a>`
+          : `<a href="/tournament-details.html?id=${t.id}" class="btn btn-outline btn-sm">View Details</a>`;
+
+      return `
+        <div class="tournament-card card-hover"
+             onclick="window.location='/tournament-details.html?id=${t.id}'"
+             style="cursor:pointer">
+          <div class="tournament-card-header">
+            <div>
+              <div class="tournament-title">${escapeHtml(t.title)}</div>
+              <div class="tournament-code">${escapeHtml(t.tournament_code)} · ${escapeHtml(t.mode)}</div>
+            </div>
+            ${statusBadge(t.status)}
+          </div>
+          <div class="tournament-meta">
+            <div class="tournament-meta-item">
+              <span class="tournament-meta-label">Entry Fee</span>
+              <span class="tournament-meta-value text-accent">${formatAmount(t.entry_fee)}</span>
+            </div>
+            <div class="tournament-meta-item">
+              <span class="tournament-meta-label">Players</span>
+              <span class="tournament-meta-value">${t.player_count} / ${t.max_players}</span>
+            </div>
+            <div class="tournament-meta-item">
+              <span class="tournament-meta-label">Scheduled</span>
+              <span class="tournament-meta-value" style="font-size:var(--text-xs)">${formatDateTime(t.scheduled_at)}</span>
+            </div>
+            <div class="tournament-meta-item">
+              <span class="tournament-meta-label">${t.status === 'open' ? 'Starts in' : 'Status'}</span>
+              <span class="tournament-meta-value"
+                    id="cd-${t.id}"
+                    style="font-size:var(--text-xs);color:var(--color-warning)">
+                ${t.status !== 'open' ? '' : '—'}
+              </span>
+            </div>
+          </div>
+          <div class="tournament-card-footer">
+            <div class="player-bar">
+              <div class="player-bar-track">
+                <div class="player-bar-fill" style="width:${pct}%"></div>
+              </div>
+              <span class="player-count-text">${t.slots_remaining} slots left</span>
+            </div>
+            <span onclick="event.stopPropagation()">${cta}</span>
+          </div>
+        </div>`;
+    }
+
+    // ── Main load function ────────────────────────────────────────────────────
+    async function load() {
+      // Cancel any running countdown timers from the previous render
+      stopCountdowns.forEach(fn => fn());
+      stopCountdowns = [];
+
+      const grid   = document.getElementById('tournament-grid');
+      const empty  = document.getElementById('tournament-empty');
+      const errDiv = document.getElementById('tournament-error');
+      const count  = document.getElementById('result-count');
+      const pagDiv = document.getElementById('pagination');
+
+      // Show skeleton while loading
+      grid.innerHTML = skeletonCard(6);
+      empty.classList.add('hidden');
+      errDiv.classList.add('hidden');
+      count.textContent = '';
+
+      try {
+        // Build query params — omit status when "all" is selected
+        const params = { limit: LIMIT, offset: currentOffset };
+        if (currentStatus !== 'all') params.status = currentStatus;
+        // NOTE: entry_fee filtering is client-side; backend ignores that param
+        if (currentFee) params.entry_fee = currentFee;
+
+        // ── Step 1: fetch ─────────────────────────────────────────────────────
+        console.log('[tournaments] fetching:', JSON.stringify(params));
+        const data = await listTournaments(params);
+
+        // ── Step 2: validate shape ────────────────────────────────────────────
+        // API returns { items: [...], total: N, limit: N, offset: N }
+        console.log('[tournaments] response type:', typeof data,
+                    '| has items:', Array.isArray(data && data.items),
+                    '| total:', data && data.total);
+
+        if (!data || typeof data !== 'object' || !Array.isArray(data.items)) {
+          // This would mean apiFetch returned a string (wrong content-type) or
+          // something structurally unexpected — surface a clear message.
+          throw new Error(
+            'Unexpected API response shape. ' +
+            'Expected {items:[],total:N} but got: ' +
+            JSON.stringify(data)?.slice(0, 200)
+          );
+        }
+
+        // ── Step 3: client-side fee filter ────────────────────────────────────
+        let items = data.items;
+        if (currentFee) {
+          items = items.filter(t => parseFloat(t.entry_fee) === parseFloat(currentFee));
+        }
+
+        // ── Step 4: render ────────────────────────────────────────────────────
+        grid.innerHTML = '';
+
+        if (items.length === 0) {
+          empty.innerHTML = emptyState({
+            icon:  '🏟️',
+            title: 'No tournaments found',
+            desc:  'Try a different filter or check back later.',
+          });
+          empty.classList.remove('hidden');
+          count.textContent = '';
+
+        } else {
+          grid.innerHTML = items.map(buildCard).join('');
+          count.textContent =
+            `Showing ${currentOffset + 1}–${currentOffset + items.length} of ${data.total}`;
+
+          // Start countdown timers for open tournaments
+          items
+            .filter(t => t.status === 'open')
+            .forEach(t => {
+              const el = document.getElementById(`cd-${t.id}`);
+              if (el) stopCountdowns.push(startCountdown(el, t.scheduled_at));
+            });
+        }
+
+        renderPagination(pagDiv, data.total, LIMIT, currentOffset, newOff => {
+          currentOffset = newOff;
+          load();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        console.log('[tournaments] rendered', items.length, 'of', data.total, 'tournaments ✓');
+
+      } catch (err) {
+        // Log the real error so it is always visible in DevTools Console
+        console.error('[tournaments] load error →', err);
+
+        grid.innerHTML = '';
+        // Show the actual error message, not just a generic fallback
+        const msg = err?.displayMessage || err?.message || String(err) || 'Failed to load tournaments.';
+        errDiv.innerHTML = errorState(msg, load);
+        errDiv.classList.remove('hidden');
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

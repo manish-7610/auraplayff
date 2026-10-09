@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard — AuraPlayFF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="/assets/css/theme.css">
+  <style>
+    /* ── Tab bar ── */
+    .lb-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: var(--space-6);
+      background: var(--color-bg-3);
+      border-radius: var(--radius-lg);
+      padding: 4px;
+    }
+    .lb-tab {
+      flex: 1;
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-md);
+      border: none;
+      background: transparent;
+      color: var(--color-text-muted);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-align: center;
+    }
+    .lb-tab.active {
+      background: var(--color-card);
+      color: var(--color-text);
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+
+    /* ── Sort / window chips ── */
+    .sort-chips { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); flex-wrap: wrap; }
+    .sort-chip {
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      border: 1px solid var(--color-border);
+      background: var(--color-bg-3);
+      color: var(--color-text-muted);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .sort-chip.active, .sort-chip:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .sort-chip.active { background: var(--color-accent-glow); }
+    .window-chips { display: flex; gap: var(--space-2); margin-bottom: var(--space-5); }
+
+    /* ── Podium ── */
+    .podium { display: flex; align-items: flex-end; justify-content: center; gap: var(--space-3); margin-bottom: var(--space-6); }
+    .podium-item { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+    .podium-avatar {
+      width: 52px; height: 52px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, var(--color-accent), var(--color-blue));
+      display: flex; align-items: center; justify-content: center;
+      font-size: var(--text-lg); font-weight: 800; color: #fff;
+      position: relative;
+    }
+    .podium-avatar.rank-1 { width:64px; height:64px; font-size:var(--text-xl); background:linear-gradient(135deg,#ffd700,#ff9500); }
+    .podium-avatar.rank-2 { background:linear-gradient(135deg,#c0c0c0,#808080); }
+    .podium-avatar.rank-3 { background:linear-gradient(135deg,#cd7f32,#8b4513); }
+    .podium-crown { position:absolute; top:-14px; font-size:20px; }
+    .podium-name { font-size:var(--text-xs); font-weight:700; text-align:center; max-width:80px; word-break:break-word; }
+    .podium-value { font-size:var(--text-xs); color:var(--color-text-muted); text-align:center; }
+    .podium-stand {
+      background:var(--color-card); border:1px solid var(--color-border);
+      border-bottom:none; border-radius:var(--radius-md) var(--radius-md) 0 0;
+      width:80px; display:flex; align-items:center; justify-content:center;
+      font-size:var(--text-sm); font-weight:800; color:var(--color-text-muted);
+    }
+
+    /* ── Tournaments tab — per-tournament result cards ── */
+    .t-cards-grid { display: flex; flex-direction: column; gap: var(--space-5); }
+
+    /* Card shell */
+    .t-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    /* Card header */
+    .t-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--color-border);
+      flex-wrap: wrap;
+    }
+    .t-card-title {
+      font-size: var(--text-base);
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+    .t-card-meta {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .t-card-meta-sep { color: var(--color-border); }
+    .t-card-badge {
+      flex-shrink: 0;
+      text-align: right;
+    }
+    .t-card-entry-fee {
+      font-size: var(--text-sm);
+      font-weight: 800;
+      color: var(--color-accent);
+      font-family: var(--font-mono);
+    }
+    .t-card-players {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+
+    /* Column header row */
+    .t-results-head {
+      display: grid;
+      grid-template-columns: 44px 1fr 64px 88px 88px 88px;
+      gap: 0;
+      padding: var(--space-2) var(--space-5);
+      background: var(--color-bg-3);
+      border-bottom: 1px solid var(--color-border);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      letter-spacing: .4px;
+      text-transform: uppercase;
+    }
+    .t-results-head span:not(:first-child) { text-align: right; }
+
+    /* Result row */
+    .t-result-row {
+      display: grid;
+      grid-template-columns: 44px 1fr 64px 88px 88px 88px;
+      gap: 0;
+      align-items: center;
+      padding: var(--space-3) var(--space-5);
+      border-bottom: 1px solid var(--color-border);
+      font-size: var(--text-xs);
+      transition: background var(--transition);
+    }
+    .t-result-row:last-child { border-bottom: none; }
+    .t-result-row:hover { background: var(--color-bg-3); }
+
+    /* YOU highlight */
+    .t-result-row.is-self { background: rgba(124,77,255,.07); }
+    .t-result-row.is-self:hover { background: rgba(124,77,255,.12); }
+
+    /* Rank cell */
+    .t-rank {
+      font-size: 15px;
+      font-weight: 800;
+      text-align: center;
+      line-height: 1;
+    }
+
+    /* Name cell */
+    .t-name {
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-right: var(--space-2);
+    }
+    .t-you-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--color-accent);
+      color: #fff;
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-left: 5px;
+      letter-spacing: .3px;
+      vertical-align: middle;
+    }
+
+    /* Stat cells (kills, prize, kill reward, total) */
+    .t-stat {
+      text-align: right;
+      padding-right: var(--space-1);
+      white-space: nowrap;
+    }
+    .t-stat.kills    { color: var(--color-text-muted); }
+    .t-stat.prize    { color: var(--color-success,#22c55e); font-weight: 600; font-family: var(--font-mono); }
+    .t-stat.kreward  { color: var(--color-blue,#3b82f6); font-weight: 600; font-family: var(--font-mono); }
+    .t-stat.total    { color: var(--color-accent); font-weight: 800; font-family: var(--font-mono); }
+    .t-stat.pending  { color: var(--color-text-muted); font-weight: 400; }
+
+    /* No-results fallback */
+    .t-no-results {
+      padding: var(--space-4) var(--space-5);
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    /* ── Responsive overrides for Tournaments tab ── */
+    @media (max-width: 700px) {
+      /* Collapse Kill Reward column on small screens */
+      .t-results-head,
+      .t-result-row {
+        grid-template-columns: 40px 1fr 56px 76px 76px;
+      }
+      .t-results-head .col-kreward,
+      .t-result-row .t-stat.kreward { display: none; }
+      .t-card-header { padding: var(--space-3) var(--space-4); }
+      .t-results-head { padding: var(--space-2) var(--space-4); }
+      .t-result-row { padding: var(--space-3) var(--space-4); }
+    }
+    @media (max-width: 480px) {
+      /* Also hide Prize column, keep Total */
+      .t-results-head,
+      .t-result-row {
+        grid-template-columns: 40px 1fr 52px 72px;
+      }
+      .t-results-head .col-prize,
+      .t-result-row .t-stat.prize { display: none; }
+    }
+
+    /* ── Player profile panel ── */
+    #player-profile-panel { margin-top: var(--space-4); }
+
+    /* Overall stats tiles */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+      flex-wrap: wrap;
+    }
+    .profile-avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--color-accent), var(--color-blue));
+      display: flex; align-items: center; justify-content: center;
+      font-size: var(--text-2xl); font-weight: 900; color: white;
+      flex-shrink: 0;
+    }
+    .profile-name { font-size: var(--text-xl); font-weight: 800; margin-bottom: 2px; }
+    .profile-sub  { font-size: var(--text-sm); color: var(--color-text-muted); }
+    .stat-tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+
+    /* ── Tournament history cards ── */
+    .history-section-title {
+      font-size: var(--text-base);
+      font-weight: 800;
+      margin-bottom: var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .history-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    /* Each tournament card */
+    .th-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .th-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-5);
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+    .th-card-title {
+      font-size: var(--text-sm);
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+    .th-card-meta {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+    .th-card-entry {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .th-entry-label { font-size: var(--text-xs); color: var(--color-text-muted); }
+    .th-entry-value { font-weight: 700; color: var(--color-accent); font-family: var(--font-mono); }
+
+    /* Highlighted "your result" banner */
+    .th-your-result {
+      background: linear-gradient(135deg, rgba(var(--color-accent-rgb, 124,77,255),.12), rgba(var(--color-blue-rgb, 59,130,246),.08));
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-3) var(--space-5);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+    .th-your-label {
+      font-size: var(--text-xs);
+      font-weight: 800;
+      color: var(--color-accent);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .th-your-stat { font-size: var(--text-xs); color: var(--color-text-muted); }
+    .th-your-stat strong { color: var(--color-text); }
+    .th-your-payout { font-weight: 800; color: var(--color-accent); font-family: var(--font-mono); font-size: var(--text-sm); margin-left: auto; }
+
+    /* Full leaderboard inside card */
+    .th-results-toggle {
+      padding: var(--space-2) var(--space-5);
+      background: var(--color-bg-3);
+      border-top: 1px solid var(--color-border);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      user-select: none;
+      transition: color var(--transition);
+    }
+    .th-results-toggle:hover { color: var(--color-text); }
+    .th-results-toggle .toggle-icon { transition: transform .2s; }
+    .th-results-toggle.open .toggle-icon { transform: rotate(180deg); }
+
+    .th-results-body {
+      border-top: 1px solid var(--color-border);
+      display: none;
+    }
+    .th-results-body.open { display: block; }
+
+    .th-result-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-5);
+      border-bottom: 1px solid var(--color-border);
+      font-size: var(--text-xs);
+      transition: background var(--transition);
+    }
+    .th-result-row:last-child { border-bottom: none; }
+    .th-result-row:hover { background: var(--color-bg-3); }
+    .th-result-row.is-self {
+      background: rgba(var(--color-accent-rgb, 124,77,255), .07);
+    }
+    .th-result-row.is-self:hover {
+      background: rgba(var(--color-accent-rgb, 124,77,255), .12);
+    }
+    .th-result-rank {
+      width: 28px;
+      text-align: center;
+      font-weight: 800;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .th-result-name {
+      flex: 1;
+      min-width: 0;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .th-result-name .you-tag {
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--color-accent);
+      color: white;
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-left: 5px;
+      letter-spacing: .3px;
+      vertical-align: middle;
+    }
+    .th-result-kills {
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+      min-width: 48px;
+      text-align: right;
+    }
+    .th-result-payout {
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--color-accent);
+      flex-shrink: 0;
+      min-width: 72px;
+      text-align: right;
+    }
+    .th-result-payout.pending {
+      color: var(--color-text-dim, var(--color-text-muted));
+      font-weight: 400;
+    }
+    .th-result-breakdown {
+      font-size: 10px;
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+      max-width: 120px;
+      text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Pagination for history ── */
+    #history-pagination { margin-top: var(--space-4); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .th-card-header { padding: var(--space-3) var(--space-4); }
+      .th-result-row  { padding: var(--space-3) var(--space-4); gap: var(--space-2); }
+      .th-your-result { padding: var(--space-3) var(--space-4); }
+      .th-results-toggle { padding: var(--space-2) var(--space-4); }
+      .th-result-breakdown { display: none; }
+      .winner-results-grid { grid-template-columns: 1fr; }
+      .stat-tiles { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="sidebar-placeholder"></div>
+    <div class="main-content">
+      <div id="topbar-placeholder"></div>
+      <div class="page-container">
+
+        <h1 class="page-title">Leaderboard</h1>
+        <p class="page-subtitle">Top players and tournament results</p>
+
+        <!-- Main tabs (hidden on player profile mode) -->
+        <div class="lb-tabs" id="lb-tab-bar" role="tablist">
+          <button class="lb-tab active" data-tab="players" role="tab">🏅 Players</button>
+          <button class="lb-tab" data-tab="tournaments" role="tab">🏆 Tournaments</button>
+        </div>
+
+        <!-- ── PLAYERS TAB ── -->
+        <div id="tab-players">
+          <div class="sort-chips" id="sort-chips">
+            <button class="sort-chip active" data-sort="wins">Total Wins</button>
+            <button class="sort-chip" data-sort="winnings">Total Winnings</button>
+            <button class="sort-chip" data-sort="kills">Total Kills</button>
+          </div>
+
+          <!-- Podium (top 3) -->
+          <div id="podium-section"></div>
+
+          <!-- Full table -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:56px">Rank</th>
+                    <th>Player</th>
+                    <th>Tournaments</th>
+                    <th>Wins</th>
+                    <th>Kills</th>
+                    <th>Winnings</th>
+                  </tr>
+                </thead>
+                <tbody id="players-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="players-empty" class="hidden"></div>
+          <div id="players-error" class="hidden" style="padding:var(--space-4)"></div>
+          <div id="players-pagination"></div>
+        </div>
+
+        <!-- ── TOURNAMENTS TAB ── -->
+        <div id="tab-tournaments" class="hidden">
+          <div class="window-chips" id="window-chips">
+            <button class="filter-chip active" data-window="24h">Last 24 Hours</button>
+            <button class="filter-chip" data-window="all">All Time</button>
+          </div>
+
+          <div id="tournament-lb-list" class="t-cards-grid"></div>
+          <div id="tournament-lb-empty" class="hidden"></div>
+          <div id="tournament-lb-error" class="hidden" style="padding:var(--space-4)"></div>
+          <div id="tournament-lb-pagination"></div>
+        </div>
+
+        <!-- ── PLAYER PROFILE (injected by JS when ?player= param present) ── -->
+
+      </div>
+    </div>
+  </div>
+
+  <div id="bottom-nav-placeholder"></div>
+
+  <script src="/assets/js/config.js"></script>
+  <script type="module">
+    import { requireAuth } from '/assets/js/auth.js';
+    import { initLayout } from '/assets/js/layout.js';
+    import {
+      getPlayerLeaderboard, getTournamentLeaderboard,
+      getPlayerPublicStats, getPlayerTournamentHistory
+    } from '/assets/js/tournaments.js';
+    import {
+      formatAmount, formatDateTime, timeAgo,
+      emptyState, errorState, skeletonCard, renderPagination,
+      escapeHtml, setPageTitle
+    } from '/assets/js/ui.js';
+
+    await requireAuth();
+    await initLayout();
+    setPageTitle('Leaderboard');
+
+    const LIMIT   = 20;
+    let pOffset   = 0;
+    let tOffset   = 0;
+    let hOffset   = 0;     // player history offset
+    let sortBy    = 'wins';
+    let window_   = '24h';
+    let activeTab = 'players';
+
+    // ── Tab switching ─────────────────────────────────────────────────
+    document.querySelectorAll('.lb-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        activeTab = tab.dataset.tab;
+        document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-players').classList.toggle('hidden', activeTab !== 'players');
+        document.getElementById('tab-tournaments').classList.toggle('hidden', activeTab !== 'tournaments');
+        if (activeTab === 'players')     loadPlayers();
+        if (activeTab === 'tournaments') loadTournaments();
+      });
+    });
+
+    // ── Sort chips (players tab) ──────────────────────────────────────
+    document.getElementById('sort-chips').addEventListener('click', e => {
+      const chip = e.target.closest('[data-sort]');
+      if (!chip) return;
+      sortBy  = chip.dataset.sort;
+      pOffset = 0;
+      document.querySelectorAll('#sort-chips .sort-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      loadPlayers();
+    });
+
+    // ── Window chips (tournaments tab) ────────────────────────────────
+    document.getElementById('window-chips').addEventListener('click', e => {
+      const chip = e.target.closest('[data-window]');
+      if (!chip) return;
+      window_ = chip.dataset.window;
+      tOffset = 0;
+      document.querySelectorAll('#window-chips .filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      loadTournaments();
+    });
+
+    // ── Players leaderboard ───────────────────────────────────────────
+    async function loadPlayers() {
+      const tbody   = document.getElementById('players-tbody');
+      const emptyEl = document.getElementById('players-empty');
+      const errEl   = document.getElementById('players-error');
+      const pagEl   = document.getElementById('players-pagination');
+      const podium  = document.getElementById('podium-section');
+
+      tbody.innerHTML = `
+        <tr><td colspan="6"><span class="skeleton skeleton-line long" style="display:block;margin:8px 16px"></span></td></tr>
+        <tr><td colspan="6"><span class="skeleton skeleton-line medium" style="display:block;margin:8px 16px"></span></td></tr>
+        <tr><td colspan="6"><span class="skeleton skeleton-line long" style="display:block;margin:8px 16px"></span></td></tr>`;
+      emptyEl.classList.add('hidden');
+      errEl.classList.add('hidden');
+      podium.innerHTML = '';
+
+      try {
+        const data = await getPlayerLeaderboard({ sort_by: sortBy, limit: LIMIT, offset: pOffset });
+
+        if (!data.items.length) {
+          tbody.innerHTML = '';
+          emptyEl.innerHTML = emptyState({ icon: '🏅', title: 'No players ranked yet', desc: 'Be the first to complete a tournament!' });
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+
+        if (pOffset === 0 && data.items.length >= 3) {
+          buildPodium(data.items.slice(0, 3), sortBy);
+        }
+
+        tbody.innerHTML = data.items.map(p => {
+          const rank = p.rank;
+          const cls  = rank <= 3 ? `rank-${rank}` : 'rank-other';
+          // display_name = ff_name if set, else username (from backend)
+          const displayName = p.display_name || p.username;
+          const playerCell  = displayName !== p.username
+            ? `<a href="/leaderboard.html?player=${encodeURIComponent(p.username)}" style="font-weight:600;color:var(--color-text)">${escapeHtml(displayName)}</a>
+               <div style="font-size:11px;color:var(--color-text-muted);margin-top:1px">${escapeHtml(p.username)}</div>`
+            : `<a href="/leaderboard.html?player=${encodeURIComponent(p.username)}" style="font-weight:600;color:var(--color-text)">${escapeHtml(displayName)}</a>`;
+          return `
+            <tr>
+              <td><span class="rank-badge ${cls}">${rank}</span></td>
+              <td>${playerCell}</td>
+              <td class="text-mono">${p.total_tournaments}</td>
+              <td class="text-mono text-success">${p.total_wins}</td>
+              <td class="text-mono">${p.total_kills}</td>
+              <td class="text-accent text-mono fw-700">${formatAmount(p.total_winnings)}</td>
+            </tr>`;
+        }).join('');
+
+        renderPagination(pagEl, data.total, LIMIT, pOffset, newOff => {
+          pOffset = newOff;
+          loadPlayers();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+      } catch (err) {
+        tbody.innerHTML = '';
+        errEl.innerHTML = errorState(err.displayMessage || 'Failed to load leaderboard.', loadPlayers);
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function buildPodium(top3, sortBy) {
+      const order   = [top3[1], top3[0], top3[2]];
+      const heights = ['60px', '80px', '50px'];
+      const crowns  = ['', '👑', ''];
+      const podium  = document.getElementById('podium-section');
+
+      const getValue = (p) => {
+        if (sortBy === 'winnings') return formatAmount(p.total_winnings);
+        if (sortBy === 'kills')    return `${p.total_kills} kills`;
+        return `${p.total_wins} wins`;
+      };
+
+      podium.innerHTML = `
+        <div class="podium" style="margin-bottom:var(--space-6)">
+          ${order.map((p, i) => {
+            const realRank   = (i === 1) ? 1 : (i === 0) ? 2 : 3;
+            const displayName = p.display_name || p.username;
+            return `
+              <div class="podium-item">
+                <div class="podium-avatar rank-${realRank}">
+                  ${crowns[i] ? `<span class="podium-crown">${crowns[i]}</span>` : ''}
+                  ${displayName[0].toUpperCase()}
+                </div>
+                <div class="podium-name">${escapeHtml(displayName)}</div>
+                ${displayName !== p.username ? `<div style="font-size:10px;color:var(--color-text-muted)">${escapeHtml(p.username)}</div>` : ''}
+                <div class="podium-value">${getValue(p)}</div>
+                <div class="podium-stand" style="height:${heights[i]}">
+                  ${realRank === 1 ? '🥇' : realRank === 2 ? '🥈' : '🥉'}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>`;
+    }
+
+    // ── Tournament leaderboard ────────────────────────────────────────
+    async function loadTournaments() {
+      const listEl  = document.getElementById('tournament-lb-list');
+      const emptyEl = document.getElementById('tournament-lb-empty');
+      const errEl   = document.getElementById('tournament-lb-error');
+      const pagEl   = document.getElementById('tournament-lb-pagination');
+
+      listEl.innerHTML = skeletonCard(4);
+      emptyEl.classList.add('hidden');
+      errEl.classList.add('hidden');
+
+      try {
+        const data = await getTournamentLeaderboard({ window: window_, limit: LIMIT, offset: tOffset });
+
+        listEl.innerHTML = '';
+        if (!data.items.length) {
+          emptyEl.innerHTML = emptyState({
+            icon: '🏆',
+            title: window_ === '24h' ? 'No tournaments in the last 24 hours' : 'No completed tournaments yet',
+            desc: 'Check back after tournaments complete.',
+          });
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+
+        // Get current user's user_id for YOU highlighting.
+        // requireAuth() puts the decoded token in localStorage under 'auth_token'.
+        let myUserId = null;
+        try {
+          const raw = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || '';
+          if (raw) {
+            const payload = JSON.parse(atob(raw.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+            myUserId = payload.sub || payload.user_id || payload.id || null;
+          }
+        } catch (_) { /* token unreadable — no YOU highlight, not an error */ }
+
+        const rankIcon = (p) =>
+          p === 1 ? '🥇' : p === 2 ? '🥈' : p === 3 ? '🥉' : `<span style="font-size:var(--text-xs);font-weight:700">#${p}</span>`;
+
+        listEl.innerHTML = data.items.map(t => {
+          const completedStr = t.completed_at ? formatDateTime(t.completed_at) : '—';
+          const top = t.top_results || [];   // array from new backend field
+
+          // Column header (only shown when there are results)
+          const colHead = top.length > 0 ? `
+            <div class="t-results-head">
+              <span>Rank</span>
+              <span style="text-align:left">Player</span>
+              <span>Kills</span>
+              <span class="col-prize">Prize</span>
+              <span class="col-kreward">Kill Rew.</span>
+              <span>Total</span>
+            </div>` : '';
+
+          const resultRows = top.map(r => {
+            const isSelf = myUserId && (r.user_id === myUserId);
+            const youTag = isSelf ? `<span class="t-you-tag">YOU</span>` : '';
+            // display_name = ff_name_snapshot → live ff_name → username (from backend)
+            const displayName = r.display_name || r.username;
+            const nameHtml    = displayName !== r.username
+              ? `${escapeHtml(displayName)}<span style="display:block;font-size:10px;color:var(--color-text-muted)">${escapeHtml(r.username)}</span>`
+              : escapeHtml(displayName);
+            // Values come directly from the backend — no frontend calculation
+            return `
+              <div class="t-result-row ${isSelf ? 'is-self' : ''}">
+                <div class="t-rank">${rankIcon(r.placement)}</div>
+                <div class="t-name">${nameHtml}${youTag}</div>
+                <div class="t-stat kills">${r.kills}</div>
+                <div class="t-stat prize">${formatAmount(r.prize_amount)}</div>
+                <div class="t-stat kreward">${formatAmount(r.kill_reward_amount)}</div>
+                <div class="t-stat total">${formatAmount(r.total_payout)}</div>
+              </div>`;
+          }).join('');
+
+          const bodyHtml = top.length > 0
+            ? colHead + resultRows
+            : `<div class="t-no-results">Results not yet finalized for this tournament.</div>`;
+
+          return `
+            <div class="t-card">
+              <div class="t-card-header">
+                <div style="min-width:0;flex:1">
+                  <div class="t-card-title">🏆 ${escapeHtml(t.title)}</div>
+                  <div class="t-card-meta">
+                    <span>${escapeHtml(t.tournament_code)}</span>
+                    <span class="t-card-meta-sep">·</span>
+                    <span>${completedStr}</span>
+                    <span class="t-card-meta-sep">·</span>
+                    <span>${t.player_count} Players</span>
+                  </div>
+                </div>
+                <div class="t-card-badge">
+                  <div class="t-card-entry-fee">${formatAmount(t.entry_fee)} Entry</div>
+                  <div class="t-card-players">Top ${top.length} shown</div>
+                </div>
+              </div>
+              ${bodyHtml}
+            </div>`;
+        }).join('');
+
+        renderPagination(pagEl, data.total, LIMIT, tOffset, newOff => {
+          tOffset = newOff;
+          loadTournaments();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+      } catch (err) {
+        listEl.innerHTML = '';
+        errEl.innerHTML = errorState(err.displayMessage || 'Failed to load tournaments.', loadTournaments);
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    // ── Player profile on ?player=username ───────────────────────────
+    const urlParams    = new URLSearchParams(window.location.search);
+    const playerParam  = urlParams.get('player');
+
+    if (playerParam) {
+      // Hide the tab bar and both tab panels
+      document.getElementById('lb-tab-bar').style.display = 'none';
+      document.getElementById('tab-players').style.display = 'none';
+      document.getElementById('tab-tournaments').style.display = 'none';
+
+      setPageTitle(`Player: ${playerParam}`);
+
+      // Insert profile panel after the subtitle
+      const container = document.querySelector('.page-container');
+      const panel = document.createElement('div');
+      panel.id = 'player-profile-panel';
+      panel.innerHTML = `<div class="card" style="padding:var(--space-6)"><div class="loading-spinner"></div></div>`;
+      container.appendChild(panel);
+
+      async function loadProfile() {
+        try {
+          // Fetch summary stats + tournament history in parallel
+          const [stats, histData] = await Promise.all([
+            getPlayerPublicStats(playerParam),
+            getPlayerTournamentHistory(playerParam, { limit: LIMIT, offset: hOffset }),
+          ]);
+
+          renderProfile(stats, histData);
+        } catch (err) {
+          panel.innerHTML = `
+            <div class="card" style="padding:var(--space-6)">
+              ${errorState(err.displayMessage || 'Player not found.')}
+              <div style="text-align:center;margin-top:var(--space-4)">
+                <a href="/leaderboard.html" class="btn btn-ghost">← Back to Leaderboard</a>
+              </div>
+            </div>`;
+        }
+      }
+
+      function renderProfile(stats, histData) {
+        // ── Overall summary ──
+        const displayName = stats.display_name || stats.username;
+        const summaryHtml = `
+          <div class="card" style="padding:var(--space-6);margin-bottom:var(--space-4)">
+            <div class="profile-header">
+              <div class="profile-avatar">${escapeHtml((displayName[0] || '?').toUpperCase())}</div>
+              <div>
+                <div class="profile-name">${escapeHtml(displayName)}</div>
+                ${displayName !== stats.username
+                  ? `<div style="font-size:var(--text-xs);color:var(--color-text-muted)">Login: ${escapeHtml(stats.username)}</div>`
+                  : ''}
+                <div class="profile-sub">Member since ${new Date(stats.member_since).toLocaleDateString('en-IN', { year:'numeric', month:'long' })}</div>
+              </div>
+              <div style="margin-left:auto">
+                <a href="/leaderboard.html" class="btn btn-ghost" style="font-size:var(--text-xs)">← Back</a>
+              </div>
+            </div>
+            <div class="stat-tiles">
+              <div class="stat-tile">
+                <div class="stat-tile-value">${stats.total_tournaments}</div>
+                <div class="stat-tile-label">Tournaments</div>
+              </div>
+              <div class="stat-tile">
+                <div class="stat-tile-value text-success">${stats.total_wins}</div>
+                <div class="stat-tile-label">Wins</div>
+              </div>
+              <div class="stat-tile">
+                <div class="stat-tile-value text-blue">${stats.total_kills}</div>
+                <div class="stat-tile-label">Total Kills</div>
+              </div>
+              <div class="stat-tile">
+                <div class="stat-tile-value text-accent">${formatAmount(stats.total_winnings)}</div>
+                <div class="stat-tile-label">Total Winnings</div>
+              </div>
+            </div>
+          </div>`;
+
+        // ── Tournament history ──
+        let historyHtml = '';
+        if (!histData.items.length) {
+          historyHtml = `
+            <div style="margin-top:var(--space-2)">
+              ${emptyState({ icon: '🏆', title: 'No completed tournaments yet', desc: `${escapeHtml(stats.username)} hasn't finished any tournaments.` })}
+            </div>`;
+        } else {
+          const cards = histData.items.map((t, idx) => buildHistoryCard(t, idx + hOffset + 1)).join('');
+          historyHtml = `
+            <div style="margin-top:var(--space-2)">
+              <div class="history-section-title">🏆 Tournament Results <span style="font-size:var(--text-xs);font-weight:400;color:var(--color-text-muted)">(${histData.total} total)</span></div>
+              <div class="history-grid" id="history-grid">${cards}</div>
+              <div id="history-pagination"></div>
+            </div>`;
+        }
+
+        panel.innerHTML = summaryHtml + historyHtml;
+
+        // Wire toggle buttons for per-card result expansion
+        panel.querySelectorAll('.th-results-toggle').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const body = document.getElementById(btn.dataset.target);
+            if (!body) return;
+            const open = body.classList.toggle('open');
+            btn.classList.toggle('open', open);
+            btn.querySelector('.toggle-icon').textContent = open ? '▲' : '▼';
+            btn.querySelector('.toggle-label').textContent = open ? 'Hide full leaderboard' : `Show all ${btn.dataset.count} players`;
+          });
+        });
+
+        // Wire pagination
+        if (histData.total > LIMIT) {
+          const pagEl = document.getElementById('history-pagination');
+          renderPagination(pagEl, histData.total, LIMIT, hOffset, async (newOff) => {
+            hOffset = newOff;
+            panel.innerHTML = `<div class="card" style="padding:var(--space-6)"><div class="loading-spinner"></div></div>`;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            try {
+              const [newStats, newHist] = await Promise.all([
+                getPlayerPublicStats(playerParam),
+                getPlayerTournamentHistory(playerParam, { limit: LIMIT, offset: hOffset }),
+              ]);
+              renderProfile(newStats, newHist);
+            } catch (err) {
+              panel.innerHTML = errorState(err.displayMessage || 'Failed to load.', loadProfile);
+            }
+          });
+        }
+      }
+
+      function buildHistoryCard(t, cardNum) {
+        const pr = t.player_result;
+        const completedStr = t.completed_at ? formatDateTime(t.completed_at) : '—';
+
+        // ── Your result banner ──
+        let yourBannerHtml = '';
+        if (pr) {
+          const rankEmoji = pr.placement === 1 ? '🥇' : pr.placement === 2 ? '🥈' : pr.placement === 3 ? '🥉' : `#${pr.placement}`;
+          const payoutHtml = pr.total_payout != null
+            ? `<span class="th-your-payout">${formatAmount(pr.total_payout)}</span>`
+            : `<span class="th-your-payout" style="color:var(--color-text-muted);font-weight:400">Pending</span>`;
+
+          const prizeDetail = pr.total_payout != null
+            ? `<span class="th-your-stat">Prize: <strong>${formatAmount(pr.prize_amount)}</strong></span>
+               <span class="th-your-stat">Kill Reward: <strong>${formatAmount(pr.kill_reward_amount)}</strong></span>`
+            : `<span class="th-your-stat" style="font-style:italic">Payout pending verification</span>`;
+
+          yourBannerHtml = `
+            <div class="th-your-result">
+              <span class="th-your-label">⭐ Your Result</span>
+              <span class="th-your-stat">Rank: <strong>${rankEmoji}</strong></span>
+              <span class="th-your-stat">Kills: <strong>${pr.kills}</strong></span>
+              ${prizeDetail}
+              ${payoutHtml}
+            </div>`;
+        }
+
+        // ── Full result rows ──
+        const resultRows = t.results.map(r => {
+          const rankIcon = r.placement === 1 ? '🥇' : r.placement === 2 ? '🥈' : r.placement === 3 ? '🥉' : r.placement;
+          const youTag   = r.is_self ? `<span class="you-tag">YOU</span>` : '';
+          // display_name uses ff_name_snapshot priority chain (set by backend)
+          const displayName = r.display_name || r.username;
+          const nameHtml    = displayName !== r.username
+            ? `${escapeHtml(displayName)}<span style="display:block;font-size:10px;color:var(--color-text-muted)">${escapeHtml(r.username)}</span>`
+            : escapeHtml(displayName);
+
+          let payoutDisplay = '';
+          let breakdownDisplay = '';
+          if (r.total_payout != null) {
+            payoutDisplay    = `<span class="th-result-payout">${formatAmount(r.total_payout)}</span>`;
+            breakdownDisplay = r.kill_reward_breakdown
+              ? `<span class="th-result-breakdown" title="${escapeHtml(r.kill_reward_breakdown)}">${escapeHtml(r.kill_reward_breakdown)}</span>`
+              : '';
+          } else {
+            payoutDisplay = `<span class="th-result-payout pending">—</span>`;
+          }
+
+          return `
+            <div class="th-result-row ${r.is_self ? 'is-self' : ''}">
+              <div class="th-result-rank">${rankIcon}</div>
+              <div class="th-result-name">${nameHtml}${youTag}</div>
+              <div class="th-result-kills">${r.kills} kills</div>
+              ${payoutDisplay}
+              ${breakdownDisplay}
+            </div>`;
+        }).join('');
+
+        const toggleId    = `th-body-${t.tournament_id}`;
+        const playerCount = t.results.length;
+
+        return `
+          <div class="th-card">
+            <div class="th-card-header">
+              <div>
+                <div class="th-card-title">🏆 ${escapeHtml(t.title)}</div>
+                <div class="th-card-meta">${escapeHtml(t.tournament_code)} · ${completedStr} · ${t.player_count} players</div>
+              </div>
+              <div class="th-card-entry">
+                <div class="th-entry-label">Entry</div>
+                <div class="th-entry-value">${formatAmount(t.entry_fee)}</div>
+              </div>
+            </div>
+
+            ${yourBannerHtml}
+
+            ${playerCount > 0 ? `
+              <div class="th-results-toggle" data-target="${escapeHtml(toggleId)}" data-count="${playerCount}">
+                <span class="toggle-icon">▼</span>
+                <span class="toggle-label">Show all ${playerCount} players</span>
+              </div>
+              <div class="th-results-body" id="${escapeHtml(toggleId)}">
+                ${resultRows}
+              </div>` : ''}
+          </div>`;
+      }
+
+      await loadProfile();
+
+    } else {
+      // Normal leaderboard — initial load
+      loadPlayers();
+    }
+  </script>
+</body>
+</html>
