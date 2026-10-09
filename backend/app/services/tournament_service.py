@@ -118,11 +118,12 @@ async def _generate_tournament_code(db: AsyncSession) -> str:
     The UNIQUE constraint + retry is what makes this fully safe.
     """
     # Extract the numeric part of the code (e.g. "T-0042" → 42) and take MAX.
-    # NULLIF handles the empty-table case (no rows yet → returns NULL → coalesce 0).
-    from sqlalchemy import cast, Integer, text as sa_text
+    # SUBSTR(tournament_code, 3) skips the fixed "T-" prefix and is compatible
+    # with both PostgreSQL (production) and SQLite (test environment).
+    from sqlalchemy import text as sa_text
     result = await db.execute(
         sa_text(
-            "SELECT COALESCE(MAX(CAST(SUBSTRING(tournament_code FROM '[0-9]+$') AS INTEGER)), 0)"
+            "SELECT COALESCE(MAX(CAST(SUBSTR(tournament_code, 3) AS INTEGER)), 0)"
             " FROM tournaments"
         )
     )

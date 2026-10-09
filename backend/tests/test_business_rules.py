@@ -705,7 +705,7 @@ async def _setup_tournament_with_room(
         headers={"Authorization": f"Bearer {staff_token}"},
     )
 
-    reg = await register_player(client, username="roomtestplayer", ff_uid="8880000099")
+    reg = await register_player(client, username="roomtestplayer", ff_uid="8880000099", ff_name="RoomTestFP")
     player_id = uuid.UUID(reg.json()["id"])
     async with db_session.begin():
         await credit_deposit_balance(

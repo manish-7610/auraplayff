@@ -33,7 +33,7 @@ async def _register_and_fund(
     """Register a player, fund wallet, return (user_id, access_token)."""
     from app.services.wallet_service import credit_deposit_balance
 
-    reg = await register_player(client, username=username, ff_uid=ff_uid)
+    reg = await register_player(client, username=username, ff_uid=ff_uid, ff_name="TestPlayer")
     assert reg.status_code == 201, reg.text
     user_id = reg.json()["id"]
 
