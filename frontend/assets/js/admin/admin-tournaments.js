@@ -314,18 +314,20 @@ function _renderActionBtn(t) {
       }
     });
   } else if (t.status === 'room_released') {
-    // Room has been released — tournament is locked for cancellation/editing.
-    // Only the Go Live transition is permitted from this state.
+    // Room has been released. Players can still join until the tournament goes
+    // live. Cancellation is now permitted (pre-LIVE) — the Cancel button below
+    // will appear for authorized admins via _renderCancelBtn.
     const releasedAt = t.room_released_at ? ` at ${fmtDateTime(t.room_released_at)}` : '';
     container.innerHTML = `
       <div class="card" style="margin-top:16px;border-color:var(--color-warning)">
         <div class="card-header" style="background:rgba(255,170,0,.06)">
-          <span class="card-title" style="color:var(--color-warning)">🔒 Room Released — Tournament Locked</span>
+          <span class="card-title" style="color:var(--color-warning)">🔒 Room Released</span>
         </div>
         <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:var(--space-4)">
           Room credentials were released to players${escHtml(releasedAt)}.
-          The tournament is now <strong>locked</strong> — cancellation is no longer allowed.
           Players may continue joining until the tournament goes live.
+          You may cancel this tournament using the Cancel button below if it cannot proceed
+          (e.g. minimum players not met) — all joined players will receive a full refund.
         </p>
         <button class="btn btn-primary" id="btn-next-action">▶ ${escHtml(transition.label)}</button>
       </div>`;
@@ -366,15 +368,18 @@ function _renderActionBtn(t) {
 function _renderCancelBtn(t) {
   const btn = document.getElementById('btn-cancel-tourn');
   if (!btn) return;
-  // Cancel is only available before room release (open or confirmed).
-  // Once room credentials are released the tournament is locked — the backend
-  // will also reject any attempt, but we hide the button to avoid confusion.
-  const cancellable = ['open', 'confirmed'].includes(t.status);
+  // Cancel is available before room release (open or confirmed) AND after room
+  // release but before the tournament goes live (room_released). The backend
+  // enforces the same rule and will reject any attempt for non-cancellable statuses.
+  const cancellable = ['open', 'confirmed', 'room_released'].includes(t.status);
   btn.style.display = cancellable ? 'inline-flex' : 'none';
   btn.onclick = () => {
     const reason = prompt('Cancellation reason (required):');
     if (!reason || !reason.trim()) return;
-    if (!confirmAction('Cancel tournament and refund all players?')) return;
+    const confirmMsg = t.status === 'room_released'
+      ? 'WARNING: Room credentials have already been released to players.\n\nAre you sure you want to cancel this tournament?\n\nAll joined players will receive a full entry-fee refund. This action cannot be undone.'
+      : 'Cancel tournament and refund all players?';
+    if (!confirmAction(confirmMsg)) return;
     adminPost(`/api/admin/tournaments/${t.id}/cancel`, { reason: reason.trim() })
       .then(() => { showToast('Tournament cancelled and refunds issued', 'success'); loadTournamentDetail(t.id); })
       .catch(err => showToast(err.displayMessage || 'Cancel failed', 'error'));
