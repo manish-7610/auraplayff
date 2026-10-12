@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Player UI: show room credential release timing on the tournament detail page. After joining, the success modal and entry panel tell the player when Room ID/Password will become available (scheduled_at minus 10 minutes, formatted in IST). Also adds cancelled/refunded notice in the entry panel. Independent of FEAT-001 and FEAT-002.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "Step 1 — frontend/tournament-details.html, confirm-join-btn click handler: After the success-breakdown innerHTML is set, compute credentialReleaseTime = new Date(new Date(tournament.scheduled_at).getTime() - 10 * 60 * 1000).toISOString(). Append a new join-confirm-row to success-breakdown showing '🔐 Room Credentials Available' label and the formatted release time using formatDateTime(credentialReleaseTime) on the right, with a sub-line '10 min before {formatDateTime(tournament.scheduled_at)}'. Use the existing join-confirm-row CSS class. The row should have a border-top style to visually separate it from payment details.",
     "Step 2 — frontend/tournament-details.html, showEntryPanel() function: After the existing entry-details innerHTML is set, add a conditional block. When tournament.status === 'open' or tournament.status === 'confirmed' (room not yet released), compute releaseTime the same way (-10 min from scheduled_at) and append an info-row to entry-details showing '🔐 Room Credentials' label and 'Available {formatDateTime(releaseTime)}' value with sub-text '10 min before start'. Use the existing info-row CSS class.",
@@ -22,5 +22,5 @@
     "Manual browser verification: If a joined tournament is cancelled, the entry panel must show the refunded notice."
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Implemented in frontend/tournament-details.html. Step 1: computed credentialReleaseTime as scheduled_at minus 10 min, appended a join-confirm-row with border-top separator to success-breakdown innerHTML in the confirm-join-btn click handler. Step 2: in showEntryPanel(), added conditional block for tournament.status === 'open' || 'confirmed' that appends an info-row with release time and '10 min before start' sub-text to entry-details. Step 3: in showEntryPanel(), added conditional block for myEntry.status === 'refunded' that appends an alert alert-warning div with 'Tournament Cancelled — Refunded' heading and refund notice text to entry-panel."
 }

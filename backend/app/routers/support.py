@@ -150,6 +150,7 @@ async def get_my_support_request(
 )
 async def admin_list_support_requests(
     status: Annotated[Optional[str], Query(max_length=20)] = None,
+    is_recovery: Annotated[Optional[bool], Query()] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 30,
     offset: Annotated[int, Query(ge=0)] = 0,
     current_staff: StaffUser = Depends(get_current_staff),
@@ -157,12 +158,14 @@ async def admin_list_support_requests(
 ) -> AdminSupportListResponse:
     """
     List all support requests across all players.
-    Optionally filter by status: pending | in_progress | resolved.
+    Optionally filter by status: pending | in_progress | resolved
+    Optionally filter by is_recovery: true = password recovery requests only
     """
     await _require_support_perm(current_staff, db)
     return await support_service.list_all_requests(
         db,
         status=status,
+        is_recovery=is_recovery,
         limit=limit,
         offset=offset,
     )

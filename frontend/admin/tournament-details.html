@@ -4,14 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tournament Details — AuraPlayFF Admin</title>
+  <link rel="icon" href="/assets/img/image.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link rel="stylesheet" href="/assets/css/admin-theme.css">
   <style>
     .cred-row { display:flex; align-items:center; gap:12px; padding:12px; background:var(--color-bg-3); border:1px solid var(--color-border); border-radius:var(--radius-md); margin-bottom:8px; }
     .cred-row .cred-val { font-family:var(--font-mono); font-size:15px; font-weight:700; color:var(--color-warning); flex:1; word-break:break-all; }
-    .tabs { display:flex; border-bottom:1px solid var(--color-border); margin-bottom:20px; }
-    .tab-btn { padding:10px 20px; background:none; border:none; border-bottom:2px solid transparent; color:var(--color-text-muted); font-size:14px; font-weight:500; cursor:pointer; }
-    .tab-btn.active { color:var(--color-accent); border-bottom-color:var(--color-accent); }
-    .tab-panel { display:none; } .tab-panel.active { display:block; }
   </style>
 </head>
 <body>
@@ -42,7 +41,7 @@
 
       <!-- Overview Tab -->
       <div class="tab-panel active" id="tab-overview">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="two-col-grid">
           <div class="card">
             <div class="card-header"><span class="card-title">Tournament Info</span></div>
             <div class="detail-grid">

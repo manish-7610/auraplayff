@@ -130,15 +130,15 @@ const _wLimit = 25;
 let _wStatus = '';
 
 export async function loadWithdrawals() {
-  if (!isSuper()) { _showNoAccess('withdrawals-tbody', 8); return; }
-  showTableSkeleton('withdrawals-tbody', 8, 8);
+  if (!isSuper()) { _showNoAccess('withdrawals-tbody', 9); return; }
+  showTableSkeleton('withdrawals-tbody', 9, 8);
   try {
     const params = { limit: _wLimit, offset: _wOffset };
     if (_wStatus) params.status = _wStatus;
     const data = await adminGet('/api/admin/withdrawals', params);
     _renderWithdrawalsTable(data.items || [], data.total || 0);
   } catch (err) {
-    document.getElementById('withdrawals-tbody').innerHTML = emptyRow(8, '⚠ ' + (err.displayMessage || 'Load failed'));
+    document.getElementById('withdrawals-tbody').innerHTML = emptyRow(9, '⚠ ' + (err.displayMessage || 'Load failed'));
   }
 }
 
@@ -146,7 +146,7 @@ function _renderWithdrawalsTable(items, total) {
   const tbody = document.getElementById('withdrawals-tbody');
   if (!tbody) return;
   if (!items.length) {
-    tbody.innerHTML = emptyRow(8, 'No withdrawals found.');
+    tbody.innerHTML = emptyRow(9, 'No withdrawals found.');
     renderPagination('withdrawals-pagination', 0, _wLimit, 0, () => {});
     return;
   }
@@ -155,7 +155,8 @@ function _renderWithdrawalsTable(items, total) {
     const canMarkPaid = w.status === 'processing';
     const canReject   = ['pending', 'processing'].includes(w.status);
     return `<tr>
-      <td style="font-weight:600">${escHtml(w.username || w.user_id || '—')}</td>
+      <td style="font-weight:600">${escHtml(w.username || '—')}</td>
+      <td style="font-size:12px;color:var(--color-text-muted)">${escHtml(w.ff_name || 'Not set')}</td>
       <td class="td-mono" style="font-size:12px">${escHtml(w.upi_id || '—')}</td>
       <td style="font-weight:700;color:var(--color-warning)">₹${w.amount}</td>
       <td>${statusChip(w.status)}</td>

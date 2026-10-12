@@ -175,6 +175,8 @@ class AdminWithdrawalResponse(BaseModel):
     """Full withdrawal record for admin panel."""
     id: uuid.UUID
     user_id: uuid.UUID
+    username: Optional[str] = None
+    ff_name: Optional[str] = None
     status: str
     amount: str
     currency: str
@@ -190,9 +192,20 @@ class AdminWithdrawalResponse(BaseModel):
 
     @classmethod
     def from_withdrawal(cls, w: "Withdrawal") -> "AdminWithdrawalResponse":  # type: ignore[name-defined]  # noqa: F821
+        username: Optional[str] = None
+        ff_name: Optional[str] = None
+        try:
+            if w.user is not None:
+                username = w.user.username
+                ff_name = w.user.ff_name  # may be None if player hasn't set it
+        except Exception:
+            pass  # relationship not loaded — fields stay None
+
         return cls(
             id=w.id,
             user_id=w.user_id,
+            username=username,
+            ff_name=ff_name,
             status=w.status.value,
             amount=str(w.amount),
             currency=w.currency,

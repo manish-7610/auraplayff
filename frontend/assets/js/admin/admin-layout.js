@@ -102,10 +102,9 @@ function _injectSidebar(activePage, profile, superAdmin) {
   const sidebarHtml = `
     <aside class="admin-sidebar" id="admin-sidebar">
       <div class="sidebar-logo">
-        <div class="logo-icon">🎮</div>
-        <div>
-          <div class="logo-text">AuraPlayFF</div>
-        </div>
+        <a href="/admin/index.html" style="text-decoration:none;display:flex;align-items:center;gap:10px" aria-label="AuraPlayFF Admin Home">
+          <img src="/assets/img/image.png" alt="AuraPlayFF Logo" class="brand-logo">
+        </a>
         <span class="logo-badge">Admin</span>
       </div>
       <div class="sidebar-role">
@@ -139,10 +138,13 @@ function _injectTopbar(title) {
 
   topbar.innerHTML = `
     <button class="topbar-hamburger" id="hamburger-btn" aria-label="Toggle sidebar">☰</button>
-    <span class="topbar-title">${title}</span>
+    <a href="/admin/index.html" class="topbar-brand" style="display:flex;align-items:center;text-decoration:none;margin-right:auto" aria-label="AuraPlayFF Admin">
+      <img src="/assets/img/image.png" alt="AuraPlayFF Logo" class="topbar-brand-img">
+    </a>
+    <span class="topbar-title" style="flex:1">${title}</span>
     <div class="topbar-actions">
       <button class="topbar-notif-btn" id="topbar-notif-btn"
-        onclick="window.location.href='/admin/notifications.html'" title="Notifications">
+        onclick="window.location.href='/admin/notifications.html'" title="Notifications" aria-label="Notifications">
         🔔
         <span class="badge" id="topbar-badge"></span>
       </button>

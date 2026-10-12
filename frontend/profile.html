@@ -4,12 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile — AuraPlayFF</title>
+  <link rel="icon" href="/assets/img/image.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link rel="stylesheet" href="/assets/css/theme.css">
   <style>
+    /* ── Profile hero ────────────────────────────────────────── */
     .profile-hero {
-      background: linear-gradient(135deg, var(--color-bg-2), var(--color-bg-3));
+      background: linear-gradient(135deg, var(--color-bg-2) 0%, #151520 100%);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-xl);
       padding: var(--space-8) var(--space-6);
@@ -18,25 +20,91 @@
       gap: var(--space-6);
       margin-bottom: var(--space-6);
       flex-wrap: wrap;
+      position: relative;
+      overflow: hidden;
     }
+
+    /* Subtle glow accent top-right */
+    .profile-hero::after {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(139,92,246,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Avatar ───────────────────────────────────────────────── */
     .profile-avatar-large {
-      width: 80px; height: 80px;
+      width: 88px; height: 88px;
       border-radius: var(--radius-full);
-      background: linear-gradient(135deg, var(--color-accent), var(--color-blue));
+      background: linear-gradient(135deg, #1e1e2e, #2a1a3e);
+      border: 2.5px solid var(--color-border-light);
       display: flex; align-items: center; justify-content: center;
-      font-size: var(--text-2xl); font-weight: 900; color: #fff;
       flex-shrink: 0;
-      box-shadow: 0 0 24px var(--color-accent-glow);
+      box-shadow: 0 0 0 4px rgba(139,92,246,.15), 0 4px 20px rgba(0,0,0,.5);
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
     }
-    .profile-info { flex: 1; min-width: 160px; }
-    .profile-display-name { font-size: var(--text-xl); font-weight: 900; margin-bottom: 2px; }
+
+    /* SVG gaming avatar rendered via background */
+    .profile-avatar-svg {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Initials fallback (hidden when SVG is used) */
+    .profile-avatar-initials {
+      font-size: 28px; font-weight: 900; color: #fff;
+      font-family: var(--font-sans);
+      display: none;
+    }
+
+    /* ── Profile identity ─────────────────────────────────────── */
+    .profile-info { flex: 1; min-width: 160px; position: relative; z-index: 1; }
+
+    .profile-display-name {
+      font-size: var(--text-xl);
+      font-weight: 900;
+      margin-bottom: 2px;
+      letter-spacing: -.3px;
+      line-height: 1.2;
+    }
+
     .profile-login-username {
       font-size: var(--text-xs);
-      color: var(--color-text-muted);
-      margin-bottom: 4px;
+      color: var(--color-text-dim);
+      margin-bottom: var(--space-2);
     }
-    .profile-ff-uid   { font-size: var(--text-sm); color: var(--color-text-muted); font-family: var(--font-mono); }
-    .profile-joined   { font-size: var(--text-xs); color: var(--color-text-dim); margin-top: 4px; }
+
+    .profile-login-username span {
+      font-family: var(--font-mono);
+      color: var(--color-text-muted);
+    }
+
+    .profile-ff-uid {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      font-family: var(--font-mono);
+      background: var(--color-bg-3);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      padding: 3px 10px;
+      margin-bottom: var(--space-2);
+    }
+
+    .profile-ff-uid::before { content: '🔑'; font-size: 11px; }
+
+    .profile-joined {
+      font-size: var(--text-xs);
+      color: var(--color-text-dim);
+    }
+
+    /* ── info rows ────────────────────────────────────────────── */
     .info-row {
       display: flex;
       justify-content: space-between;
@@ -48,60 +116,155 @@
     .info-row:last-child { border-bottom: none; }
     .info-label { font-size: var(--text-sm); color: var(--color-text-muted); }
     .info-value { font-size: var(--text-sm); font-weight: 600; text-align: right; word-break: break-all; }
+
+    /* ── Stat tiles ───────────────────────────────────────────── */
     .stat-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: var(--space-4);
       margin-bottom: var(--space-6);
     }
+
+    @media (min-width: 480px) {
+      .stat-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
     .stat-tile {
       background: var(--color-card);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
-      padding: var(--space-4);
+      padding: var(--space-5) var(--space-4);
       text-align: center;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      position: relative;
+      overflow: hidden;
     }
-    .stat-tile-value { font-size: var(--text-xl); font-weight: 900; font-family: var(--font-mono); margin-bottom: 4px; }
-    .stat-tile-label { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .5px; }
+
+    .stat-tile::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+
+    .stat-tile.tile-played::before  { background: var(--color-text-muted); }
+    .stat-tile.tile-wins::before    { background: var(--color-success); }
+    .stat-tile.tile-kills::before   { background: var(--color-blue); }
+    .stat-tile.tile-winnings::before{ background: var(--color-accent); }
+
+    .stat-tile:hover {
+      border-color: var(--color-border-light);
+      box-shadow: 0 4px 16px rgba(0,0,0,.3);
+    }
+
+    .stat-tile-icon {
+      font-size: 22px;
+      line-height: 1;
+      margin-bottom: var(--space-2);
+      display: block;
+    }
+
+    .stat-tile-value {
+      font-size: var(--text-xl);
+      font-weight: 900;
+      font-family: var(--font-mono);
+      margin-bottom: 4px;
+      line-height: 1;
+    }
+
+    .stat-tile-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+
+    /* ── Security note ────────────────────────────────────────── */
     .security-note {
-      background: rgba(255,107,53,.06);
-      border: 1px solid rgba(255,107,53,.2);
+      background: rgba(255,107,53,.05);
+      border: 1px solid rgba(255,107,53,.15);
       border-radius: var(--radius-md);
       padding: var(--space-4);
       font-size: var(--text-sm);
       color: var(--color-text-muted);
       margin-bottom: var(--space-6);
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-start;
     }
 
-    /* ── Free Fire Name edit card ──────────────────────────────────── */
+    .security-note-icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+
+    /* ── FF Name card ─────────────────────────────────────────── */
     .ff-name-card {
       background: var(--color-card);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-xl);
       padding: var(--space-6);
       margin-bottom: var(--space-6);
+      position: relative;
+      overflow: hidden;
     }
+
+    .ff-name-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #ff6b00, #8b5cf6);
+    }
+
     .ff-name-card-title {
       font-size: var(--text-base);
       font-weight: 700;
       margin-bottom: var(--space-1);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
     }
+
     .ff-name-card-sub {
       font-size: var(--text-sm);
       color: var(--color-text-muted);
-      margin-bottom: var(--space-4);
+      margin-bottom: var(--space-5);
+      line-height: 1.5;
     }
+
     .ff-name-input-row {
       display: flex;
       gap: var(--space-3);
       align-items: flex-start;
       flex-wrap: wrap;
     }
+
     .ff-name-input-row .form-input {
       flex: 1;
       min-width: 160px;
       max-width: 340px;
+      font-size: var(--text-base);
+      padding: 11px var(--space-4);
     }
+
+    .btn-save-name {
+      padding: 11px var(--space-5);
+      font-weight: 700;
+      white-space: nowrap;
+      background: var(--color-blue);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .btn-save-name:hover:not(:disabled) {
+      background: var(--color-blue-dim);
+      transform: translateY(-1px);
+    }
+
+    .btn-save-name:disabled { opacity: .5; cursor: not-allowed; }
+
     .ff-name-locked-row {
       display: flex;
       align-items: center;
@@ -114,14 +277,30 @@
       font-size: var(--text-sm);
       color: var(--color-text-muted);
     }
+
     .ff-name-locked-icon { font-size: 14px; flex-shrink: 0; }
+
     #ff-name-feedback {
       font-size: var(--text-xs);
       margin-top: var(--space-2);
       min-height: 18px;
+      line-height: 1.5;
     }
     #ff-name-feedback.success { color: var(--color-success); }
     #ff-name-feedback.error   { color: var(--color-danger); }
+
+    /* ── Action buttons row ───────────────────────────────────── */
+    .profile-actions {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-8);
+    }
+
+    .profile-actions .btn { flex: 1; min-width: 120px; justify-content: center; }
+    @media (max-width: 400px) {
+      .profile-actions .btn { min-width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -156,16 +335,51 @@
 
           <!-- Hero -->
           <div class="profile-hero">
-            <div class="profile-avatar-large" id="profile-avatar">?</div>
+            <div class="profile-avatar-large" id="profile-avatar">
+              <!-- Default gaming-style SVG avatar -->
+              <svg class="profile-avatar-svg" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <!-- Background circle gradient fill -->
+                <defs>
+                  <linearGradient id="av-bg" x1="0" y1="0" x2="88" y2="88" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#2d1b4e"/>
+                    <stop offset="100%" stop-color="#1a1230"/>
+                  </linearGradient>
+                  <linearGradient id="av-body" x1="20" y1="48" x2="68" y2="88" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#8b5cf6"/>
+                    <stop offset="100%" stop-color="#6d28d9"/>
+                  </linearGradient>
+                  <linearGradient id="av-head" x1="30" y1="14" x2="58" y2="44" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#f9c784"/>
+                    <stop offset="100%" stop-color="#e8a84c"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="44" cy="44" r="44" fill="url(#av-bg)"/>
+                <!-- Body / chest -->
+                <path d="M18 82 C18 65 28 58 44 58 C60 58 70 65 70 82 Z" fill="url(#av-body)"/>
+                <!-- Collar / chest detail -->
+                <path d="M36 58 L44 70 L52 58" stroke="rgba(255,255,255,.18)" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+                <!-- Head -->
+                <circle cx="44" cy="30" r="14" fill="url(#av-head)"/>
+                <!-- Helmet visor -->
+                <path d="M30 27 Q30 18 44 18 Q58 18 58 27 L58 26 Q58 14 44 14 Q30 14 30 26 Z" fill="#ff6b00" opacity=".85"/>
+                <!-- Visor slit -->
+                <rect x="32" y="26" width="24" height="5" rx="2.5" fill="rgba(0,0,0,.45)"/>
+                <!-- Eyes -->
+                <ellipse cx="39" cy="29" rx="3" ry="2.5" fill="rgba(0,0,0,.6)"/>
+                <ellipse cx="49" cy="29" rx="3" ry="2.5" fill="rgba(0,0,0,.6)"/>
+                <!-- Eye shine -->
+                <circle cx="38.5" cy="28.5" r="1" fill="rgba(255,255,255,.7)"/>
+                <circle cx="48.5" cy="28.5" r="1" fill="rgba(255,255,255,.7)"/>
+              </svg>
+              <span class="profile-avatar-initials" id="profile-avatar-initials"></span>
+            </div>
             <div class="profile-info">
-              <!-- Display name = ff_name if set, else username -->
               <div class="profile-display-name" id="profile-display-name">—</div>
-              <!-- Always show login username below so player can identify their account -->
-              <div class="profile-login-username">Login: <span id="profile-login-username">—</span></div>
-              <div class="profile-ff-uid">FF UID: <span id="profile-ffuid">—</span></div>
+              <div class="profile-login-username">@<span id="profile-login-username">—</span></div>
+              <div class="profile-ff-uid"><span id="profile-ffuid">—</span></div>
               <div class="profile-joined" id="profile-joined"></div>
             </div>
-            <div id="profile-status-badges" style="display:flex;gap:var(--space-2);flex-wrap:wrap"></div>
+            <div id="profile-status-badges" style="display:flex;gap:var(--space-2);flex-wrap:wrap;position:relative;z-index:1"></div>
           </div>
 
           <!-- ── Free Fire Name edit section ──────────────────────── -->
@@ -204,7 +418,7 @@
                   aria-label="Free Fire display name"
                   required
                 >
-                <button type="submit" class="btn btn-primary" id="ff-name-save-btn">
+                <button type="submit" class="btn-save-name" id="ff-name-save-btn">
                   Save Name
                 </button>
               </div>
@@ -226,19 +440,23 @@
           <!-- Tournament stats -->
           <h2 class="section-title mb-4">Tournament Statistics</h2>
           <div class="stat-grid" id="stats-grid">
-            <div class="stat-tile">
+            <div class="stat-tile tile-played">
+              <span class="stat-tile-icon">🎮</span>
               <div class="stat-tile-value" id="stat-played">0</div>
               <div class="stat-tile-label">Played</div>
             </div>
-            <div class="stat-tile">
+            <div class="stat-tile tile-wins">
+              <span class="stat-tile-icon">🏆</span>
               <div class="stat-tile-value text-success" id="stat-wins">0</div>
               <div class="stat-tile-label">Wins</div>
             </div>
-            <div class="stat-tile">
+            <div class="stat-tile tile-kills">
+              <span class="stat-tile-icon">💀</span>
               <div class="stat-tile-value text-blue" id="stat-kills">0</div>
               <div class="stat-tile-label">Total Kills</div>
             </div>
-            <div class="stat-tile">
+            <div class="stat-tile tile-winnings">
+              <span class="stat-tile-icon">💰</span>
               <div class="stat-tile-value text-accent" id="stat-winnings">₹0</div>
               <div class="stat-tile-label">Winnings</div>
             </div>
@@ -264,15 +482,16 @@
 
           <!-- Password reset note -->
           <div class="security-note">
-            🔒 To change your password, contact an admin for a password reset token. There is no self-service email/SMS reset in this version.
+            <span class="security-note-icon">🔒</span>
+            <span>To change your password, contact an admin for a password reset token. There is no self-service email/SMS reset in this version.</span>
           </div>
 
           <!-- Actions -->
-          <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;margin-bottom:var(--space-8)">
-            <a href="/wallet.html"      class="btn btn-outline">💰 Wallet</a>
-            <a href="/referral.html"    class="btn btn-outline">🤝 Referral</a>
-            <a href="/my-matches.html"  class="btn btn-outline">🎮 My Matches</a>
-            <button id="logout-btn"     class="btn btn-ghost" style="color:var(--color-danger)">🚪 Logout</button>
+          <div class="profile-actions">
+            <a href="/wallet.html"     class="btn btn-outline">💰 Wallet</a>
+            <a href="/referral.html"   class="btn btn-outline">🤝 Referral</a>
+            <a href="/my-matches.html" class="btn btn-outline">🎮 My Matches</a>
+            <button id="logout-btn"    class="btn btn-ghost" style="color:var(--color-danger)">🚪 Logout</button>
           </div>
 
         </div>
@@ -342,8 +561,9 @@
         const displayName = currentName || username;   // shown in hero
 
         // ── Hero ──────────────────────────────────────────────────────
-        document.getElementById('profile-avatar').textContent =
-          displayName[0]?.toUpperCase() || '?';
+        // The avatar container has an inline SVG (default gaming avatar)
+        // and a hidden initials span. We keep the SVG visible by default;
+        // the initials fallback is unused here since SVG is always shown.
         document.getElementById('profile-display-name').textContent = displayName;
         document.getElementById('profile-login-username').textContent = username;
         document.getElementById('profile-ffuid').textContent =
@@ -483,8 +703,7 @@
         // Update hero immediately — no page reload needed
         const displayName = result.ff_name || value;
         document.getElementById('profile-display-name').textContent = displayName;
-        document.getElementById('profile-avatar').textContent =
-          displayName[0]?.toUpperCase() || '?';
+        // SVG avatar remains — no letter update needed
         setSidebarUser({ username: displayName });
 
         // Update account-rows inline

@@ -62,3 +62,35 @@ uploads/
 # ── Docker ────────────────────────────────────────────────────────────────────
 # keep docker-compose.yml and Dockerfile committed
 docker-compose.override.yml
+
+# ── Temporary / Token files ───────────────────────────────────────────────────
+*.tmp
+*.token
+
+# ── Local dev diagnostic / helper scripts ────────────────────────────────────
+# These are one-off automation scripts with no production value.
+t2.ps1
+t3.ps1
+t4.ps1
+t5.ps1
+test_tasks.ps1
+backend/add_commits.py
+backend/check_syntax.py
+backend/check_syntax.ps1
+backend/check_migrations.py
+backend/check_phase6_imports.py
+backend/check_phase6_syntax.ps1
+backend/fix_agents_router.py
+backend/fix_idempotency_check.py
+backend/tests/check_db.py
+backend/tests/test_debug_fixture.py
+
+# ── Migration / test run output artifacts ────────────────────────────────────
+backend/mig_stdout.txt
+backend/mig_stderr.txt
+backend/repro_err.txt
+backend/repro_out.txt
+check_results.txt
+
+# ── Agent task artifacts ──────────────────────────────────────────────────────
+.agents/

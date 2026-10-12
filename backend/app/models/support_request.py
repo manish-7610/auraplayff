@@ -30,6 +30,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     Enum,
@@ -62,9 +63,11 @@ class SupportRequest(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
     # ── Player ────────────────────────────────────────────────────────────────
-    user_id: Mapped[uuid.UUID] = mapped_column(
+    # Nullable for recovery requests (submitted without authentication).
+    # For normal support tickets this is always set to the authenticated player.
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
 
@@ -81,6 +84,16 @@ class SupportRequest(Base):
     # ── Contact (at least one required — enforced at application layer) ───────
     whatsapp_number: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     instagram_id: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+
+    # ── Recovery flag ─────────────────────────────────────────────────────────
+    # True when submitted via the PUBLIC /api/recovery/request endpoint.
+    # The requester_username / requester_ff_uid are self-reported and NOT
+    # verified — they exist only to help admin manually identify the account.
+    is_recovery: Mapped[bool] = mapped_column(
+        default=False, server_default=text("false"), nullable=False, index=True
+    )
+    requester_username: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    requester_ff_uid: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 
     # ── Status ────────────────────────────────────────────────────────────────
     status: Mapped[SupportStatus] = mapped_column(
@@ -121,7 +134,7 @@ class SupportRequest(Base):
     )
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    user: Mapped["User"] = relationship(  # type: ignore[name-defined]
+    user: Mapped[Optional["User"]] = relationship(  # type: ignore[name-defined]
         "User", lazy="select"
     )
     tournament: Mapped[Optional["Tournament"]] = relationship(  # type: ignore[name-defined]

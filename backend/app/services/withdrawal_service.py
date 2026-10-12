@@ -49,6 +49,7 @@ from decimal import Decimal
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import AppError
 from app.models._types import utcnow
@@ -476,7 +477,8 @@ async def admin_list_withdrawals(
     total = count_result.scalar_one()
 
     rows = await db.execute(
-        q.order_by(Withdrawal.created_at.desc()).limit(limit).offset(offset)
+        q.options(selectinload(Withdrawal.user))
+        .order_by(Withdrawal.created_at.desc()).limit(limit).offset(offset)
     )
     return list(rows.scalars().all()), total
 
@@ -493,7 +495,9 @@ async def admin_get_withdrawal(
 
 async def _get_withdrawal(db: AsyncSession, withdrawal_id: uuid.UUID) -> Withdrawal:
     result = await db.execute(
-        select(Withdrawal).where(Withdrawal.id == withdrawal_id)
+        select(Withdrawal)
+        .options(selectinload(Withdrawal.user))
+        .where(Withdrawal.id == withdrawal_id)
     )
     w = result.scalar_one_or_none()
     if w is None:

@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agent Details — AuraPlayFF Admin</title>
+  <link rel="icon" href="/assets/img/image.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link rel="stylesheet" href="/assets/css/admin-theme.css">
 </head>
 <body>
@@ -88,7 +91,7 @@
             <div class="stat-card"><div class="stat-label">Adjustment</div><div class="stat-value" id="ad-month-adj" style="font-size:16px">—</div></div>
             <div class="stat-card blue"><div class="stat-label">Est. Final</div><div class="stat-value" id="ad-month-final" style="font-size:16px">—</div></div>
           </div>
-          <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-top:12px">
+          <div class="stats-grid-3col">
             <div class="stat-card"><div class="stat-label">Days Met</div><div class="stat-value" id="ad-days-met">—</div></div>
             <div class="stat-card danger"><div class="stat-label">Days Missed</div><div class="stat-value" id="ad-days-missed">—</div></div>
             <div class="stat-card warning"><div class="stat-label">Days Graced</div><div class="stat-value" id="ad-days-grace">—</div></div>
@@ -119,7 +122,7 @@
 
       <!-- History tab -->
       <div class="tab-panel" id="tab-history">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="two-col-grid">
           <div class="card">
             <div class="card-header">
               <span class="card-title">Grace Records</span>
@@ -184,7 +187,7 @@
               </tbody>
             </table>
           </div>
-          <div id="th-pagination" style="padding:12px 20px;border-top:1px solid var(--color-border)"></div>
+          <div id="th-pagination" style="padding:12px 20px;border-top:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"></div>
         </div>
       </div>
 
@@ -285,11 +288,6 @@
         }
       });
     });
-
-    // Stack history grid on mobile
-    if (window.innerWidth < 768) {
-      document.querySelector('#tab-history > div')?.style.setProperty('grid-template-columns','1fr');
-    }
   })();
 </script>
 </body>

@@ -371,3 +371,76 @@ async def issue_password_reset(
         reset_token=raw_token,
         expires_in_minutes=settings.password_reset_token_expire_minutes,
     )
+
+
+# ── Issue password reset from a recovery request ─────────────────────────────
+
+@router.post(
+    "/by-username/{username}/issue-password-reset",
+    response_model=IssuePasswordResetResponse,
+    summary="Issue reset token by username (Super Admin only — for recovery requests)",
+)
+async def issue_password_reset_by_username(
+    username: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_staff: StaffUser = Depends(get_current_staff),
+) -> IssuePasswordResetResponse:
+    """
+    Issue a one-time password reset token by username, for use after manually
+    verifying a recovery request.
+
+    Super Admin only — agents are explicitly blocked.
+    The admin must have already verified account ownership before calling this.
+    Returns the raw token once; it is never stored in plaintext.
+    """
+    if current_staff.role != StaffRole.super_admin:
+        raise PermissionDeniedError("password_reset.super_admin_only")
+
+    result = await db.execute(select(User).where(User.username == username.strip()))
+    user: User | None = result.scalar_one_or_none()
+    if user is None:
+        raise NotFoundError("User")
+
+    settings = get_settings()
+    raw_token, token_hash = generate_password_reset_token()
+    expires_at = password_reset_token_expiry()
+
+    await db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.is_active == True,  # noqa: E712
+        )
+        .values(is_active=False)
+    )
+
+    prt = PasswordResetToken(
+        user_id=user.id,
+        token_hash=token_hash,
+        expires_at=expires_at,
+        issued_by_id=current_staff.id,
+    )
+    db.add(prt)
+
+    await audit_service.log(
+        db=db,
+        actor_type=ActorType.staff,
+        actor_id=str(current_staff.id),
+        action="password_reset.issued_from_recovery",
+        entity_type="user",
+        entity_id=str(user.id),
+        new_value={
+            "issued_by": current_staff.agent_id,
+            "expires_at": expires_at.isoformat(),
+            "trigger": "recovery_request",
+        },
+        ip_address=_get_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    await db.commit()
+
+    return IssuePasswordResetResponse(
+        reset_token=raw_token,
+        expires_in_minutes=settings.password_reset_token_expire_minutes,
+    )

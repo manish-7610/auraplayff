@@ -4,37 +4,230 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register — AuraPlayFF</title>
+  <link rel="icon" href="/assets/img/image.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link rel="stylesheet" href="/assets/css/theme.css">
   <style>
-    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: var(--space-4); }
-    .auth-container { width: 100%; max-width: 440px; }
-    .auth-logo { text-align: center; margin-bottom: var(--space-6); }
-    .auth-logo-text { font-size: var(--text-2xl); font-weight: 900; background: linear-gradient(135deg, var(--color-accent), var(--color-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; }
-    .auth-logo-tagline { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-1); }
-    .auth-card { background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-7) var(--space-8); box-shadow: var(--shadow-card); }
-    .auth-title { font-size: var(--text-xl); font-weight: 800; margin-bottom: var(--space-2); }
-    .auth-subtitle { font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--space-6); }
-    .auth-footer { text-align: center; margin-top: var(--space-5); font-size: var(--text-sm); color: var(--color-text-muted); }
-    .auth-footer a { color: var(--color-accent); }
-    .referral-pre { background: var(--color-bg-3); border: 1px solid var(--color-accent); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); font-size: var(--text-sm); color: var(--color-accent); display: none; margin-bottom: var(--space-4); }
-    @media (max-width: 480px) { .auth-card { padding: var(--space-6) var(--space-5); } }
+    /* ── Register page layout ─────────────────────────────────── */
+    body {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 100vh;
+      padding: var(--space-8) var(--space-4) var(--space-10);
+      background: var(--color-bg);
+    }
+    /* Grid backdrop: defined in theme.css — no per-page override needed */
+
+    .auth-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    /* ── Logo area ────────────────────────────────────────────── */
+    .auth-logo {
+      text-align: center;
+      margin-bottom: var(--space-6);
+    }
+
+    .auth-logo-img {
+      height: 52px;
+      width: auto;
+      margin: 0 auto var(--space-2);
+      filter: drop-shadow(0 0 12px rgba(255,107,0,.35));
+    }
+
+    .auth-logo-tagline {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text-dim);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    /* ── Card ─────────────────────────────────────────────────── */
+    .auth-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8) var(--space-8);
+      box-shadow: 0 8px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,107,0,.06);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Top accent stripe */
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--color-accent), var(--color-blue), var(--color-accent));
+      background-size: 200% 100%;
+    }
+
+    /* ── Card header ──────────────────────────────────────────── */
+    .auth-card-header {
+      margin-bottom: var(--space-7);
+    }
+
+    .auth-title {
+      font-size: var(--text-xl);
+      font-weight: 800;
+      margin-bottom: var(--space-1);
+      letter-spacing: -.4px;
+    }
+
+    .auth-subtitle {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    /* ── Field group improvements ─────────────────────────────── */
+    .form-stack { gap: var(--space-5); }
+
+    .form-label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-text);
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-2);
+    }
+
+    .label-optional {
+      font-size: var(--text-xs);
+      font-weight: 400;
+      color: var(--color-text-dim);
+    }
+
+    /* Taller, more comfortable inputs */
+    .form-input {
+      padding: 11px var(--space-4);
+      font-size: var(--text-base);
+      background: var(--color-bg-2);
+      border: 1.5px solid var(--color-border);
+    }
+
+    .form-input:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(255,107,0,.14);
+      background: var(--color-bg-3);
+    }
+
+    .form-hint {
+      font-size: 11px;
+      color: var(--color-text-dim);
+      line-height: 1.5;
+    }
+
+    /* Divider between optional fields */
+    .field-divider {
+      border: none;
+      border-top: 1px solid var(--color-border);
+      margin: var(--space-2) 0;
+    }
+
+    /* ── Referral notice ──────────────────────────────────────── */
+    .referral-pre {
+      display: none;
+      align-items: center;
+      gap: var(--space-3);
+      background: rgba(255,107,0,.08);
+      border: 1px solid rgba(255,107,0,.3);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-sm);
+      color: var(--color-accent);
+      margin-bottom: var(--space-5);
+    }
+
+    .referral-pre-icon { font-size: 18px; flex-shrink: 0; }
+
+    /* ── Submit button ────────────────────────────────────────── */
+    .btn-register {
+      width: 100%;
+      padding: 13px var(--space-6);
+      font-size: var(--text-base);
+      font-weight: 700;
+      letter-spacing: .2px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--color-accent) 0%, #e05a00 100%);
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 16px rgba(255,107,0,.3);
+      transition: all var(--transition);
+      margin-top: var(--space-2);
+    }
+
+    .btn-register:hover:not(:disabled) {
+      background: linear-gradient(135deg, #ff7a1a 0%, var(--color-accent) 100%);
+      box-shadow: 0 6px 20px rgba(255,107,0,.4);
+      transform: translateY(-1px);
+    }
+
+    /* ── Footer links ─────────────────────────────────────────── */
+    .auth-footer-block {
+      text-align: center;
+      margin-top: var(--space-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .auth-footer-primary {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    .auth-footer-primary a {
+      color: var(--color-accent);
+      font-weight: 600;
+    }
+
+    .auth-footer-back {
+      font-size: var(--text-xs);
+      color: var(--color-text-dim);
+    }
+
+    .auth-footer-back a {
+      color: var(--color-text-dim);
+    }
+
+    .auth-footer-back a:hover { color: var(--color-text-muted); }
+
+    /* ── Responsive ───────────────────────────────────────────── */
+    @media (max-width: 560px) {
+      body { padding: var(--space-6) var(--space-3) var(--space-10); }
+      .auth-card { padding: var(--space-6) var(--space-5); border-radius: var(--radius-lg); }
+      .auth-logo-img { height: 44px; }
+    }
+
+    @media (max-width: 380px) {
+      body { padding: var(--space-5) var(--space-3) var(--space-10); }
+      .auth-card { padding: var(--space-5) var(--space-4); }
+    }
   </style>
 </head>
 <body>
   <div class="auth-container fade-in">
     <div class="auth-logo">
-      <div class="auth-logo-text">AuraPlayFF</div>
+      <img src="/assets/img/image.png" alt="AuraPlayFF Logo" class="auth-logo-img">
       <div class="auth-logo-tagline">Free Fire Tournaments</div>
     </div>
 
     <div class="auth-card">
-      <h1 class="auth-title">Create your account</h1>
-      <p class="auth-subtitle">Join the battlefield and start winning</p>
+      <div class="auth-card-header">
+        <h1 class="auth-title">Create your account</h1>
+        <p class="auth-subtitle">Join the battlefield and start winning</p>
+      </div>
 
       <div id="referral-notice" class="referral-pre">
-        🎁 Referral code applied: <strong id="referral-code-display"></strong>
+        <span class="referral-pre-icon">🎁</span>
+        <span>Referral code applied: <strong id="referral-code-display"></strong></span>
       </div>
 
       <div id="form-error" class="alert alert-error mb-4" style="display:none">
@@ -48,34 +241,37 @@
       </div>
 
       <form id="register-form" class="form-stack" novalidate>
+
         <div class="form-group">
           <label class="form-label" for="username">Username</label>
           <input class="form-input" id="username" type="text" name="username"
-                 placeholder="3–30 chars, letters, digits, underscore"
+                 placeholder="e.g. player_123"
                  autocomplete="username" autocapitalize="none" spellcheck="false"
                  minlength="3" maxlength="30" required>
-          <div class="form-hint">Letters, numbers, underscore only. No spaces.</div>
+          <div class="form-hint">3–30 characters. Letters, numbers, and underscores only.</div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="ff_uid">Free Fire UID</label>
           <input class="form-input" id="ff_uid" type="text" name="ff_uid"
-                 placeholder="Your in-game numeric UID"
+                 placeholder="Your 6–15 digit numeric UID"
                  pattern="\d{6,15}" inputmode="numeric"
                  minlength="6" maxlength="15" required>
-          <div class="form-hint">6–15 digits. Find it in your Free Fire profile.</div>
+          <div class="form-hint">Find your UID inside Free Fire → Profile page.</div>
         </div>
 
         <div class="form-group">
           <label class="form-label" for="ff_name">
-            Free Fire Name <span style="color:var(--color-text-muted)">(optional)</span>
+            Free Fire Name <span class="label-optional">optional</span>
           </label>
           <input class="form-input" id="ff_name" type="text" name="ff_name"
                  placeholder="Your in-game display name"
                  autocomplete="off" spellcheck="false"
                  minlength="2" maxlength="30">
-          <div class="form-hint">Enter the same name you use in Free Fire. Shown on leaderboards and results. You can set or change this from your profile later.</div>
+          <div class="form-hint">Shown on leaderboards and results. You can set it from your profile later.</div>
         </div>
+
+        <hr class="field-divider">
 
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
@@ -87,29 +283,37 @@
         <div class="form-group">
           <label class="form-label" for="confirm_password">Confirm Password</label>
           <input class="form-input" id="confirm_password" type="password" name="confirm_password"
-                 placeholder="Repeat password"
+                 placeholder="Repeat your password"
                  autocomplete="new-password" minlength="8" maxlength="128" required>
         </div>
 
+        <hr class="field-divider">
+
         <div class="form-group">
-          <label class="form-label" for="referral_code">Referral Code <span style="color:var(--color-text-muted)">(optional)</span></label>
+          <label class="form-label" for="referral_code">
+            Referral Code <span class="label-optional">optional</span>
+          </label>
           <input class="form-input" id="referral_code" type="text" name="referral_code"
-                 placeholder="8-character code (e.g. ABC12345)"
+                 placeholder="8-character code  (e.g. ABC12345)"
                  maxlength="8" autocapitalize="characters" spellcheck="false">
-          <div class="form-hint">Get ₹20 referral bonus after your first tournament!</div>
+          <div class="form-hint">Both you and your referrer earn ₹20 after your first tournament!</div>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-full btn-lg" id="submit-btn">
+        <button type="submit" class="btn btn-register" id="submit-btn">
           Create Account
         </button>
+
       </form>
 
-      <div class="auth-footer">
-        Already have an account? <a href="/login.html">Sign in here</a>
+      <div class="auth-footer-block">
+        <div class="auth-footer-primary">
+          Already have an account? <a href="/login.html">Sign in</a>
+        </div>
+        <div class="auth-footer-back">
+          <a href="/index.html">← Back to home</a>
+        </div>
       </div>
-      <div class="auth-footer" style="margin-top:var(--space-2)">
-        <a href="/index.html" style="color:var(--color-text-muted)">← Back to home</a>
-      </div>
+
     </div>
   </div>
 
@@ -134,7 +338,7 @@
       refInput.value = refCode.toUpperCase();
       const notice = document.getElementById('referral-notice');
       document.getElementById('referral-code-display').textContent = refCode.toUpperCase();
-      notice.style.display = 'block';
+      notice.style.display = 'flex';
     }
 
     const form       = document.getElementById('register-form');

@@ -86,7 +86,7 @@ async def _to_admin_response(
     db: AsyncSession,
     req: SupportRequest,
 ) -> AdminSupportResponse:
-    username = await _username(db, req.user_id)
+    username = await _username(db, req.user_id) if req.user_id else None
     t_title = await _tournament_title(db, req.tournament_id)
     return AdminSupportResponse(
         id=req.id,
@@ -101,6 +101,9 @@ async def _to_admin_response(
         admin_response=req.admin_response,
         resolved_at=req.resolved_at,
         resolved_by_id=req.resolved_by_id,
+        is_recovery=getattr(req, "is_recovery", False),
+        requester_username=getattr(req, "requester_username", None),
+        requester_ff_uid=getattr(req, "requester_ff_uid", None),
         created_at=req.created_at,
         updated_at=req.updated_at,
     )
@@ -226,10 +229,11 @@ async def list_all_requests(
     db: AsyncSession,
     *,
     status: str | None = None,
+    is_recovery: bool | None = None,
     limit: int = _DEFAULT_LIMIT,
     offset: int = 0,
 ) -> AdminSupportListResponse:
-    """Return all support requests, optionally filtered by status."""
+    """Return all support requests, optionally filtered by status and/or is_recovery."""
     limit = min(limit, _MAX_LIMIT)
 
     q = select(SupportRequest)
@@ -242,6 +246,10 @@ async def list_all_requests(
             count_q = count_q.where(SupportRequest.status == status_enum)
         except ValueError:
             pass  # ignore invalid filter value
+
+    if is_recovery is not None:
+        q = q.where(SupportRequest.is_recovery == is_recovery)
+        count_q = count_q.where(SupportRequest.is_recovery == is_recovery)
 
     count_result = await db.execute(count_q)
     total = count_result.scalar_one()

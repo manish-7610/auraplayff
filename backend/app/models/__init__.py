@@ -33,6 +33,8 @@ from app.models.agent_performance import (
 # Phase 7 — Scheduler, Notifications
 from app.models.notification import Notification, RecipientType, NotificationType
 from app.models.job_execution_log import JobExecutionLog, JobStatus
+# Phase 10 — Support
+from app.models.support_request import SupportRequest, SupportStatus
 
 __all__ = [
     "User",
@@ -76,4 +78,7 @@ __all__ = [
     "NotificationType",
     "JobExecutionLog",
     "JobStatus",
+    # Phase 10 — Support
+    "SupportRequest",
+    "SupportStatus",
 ]

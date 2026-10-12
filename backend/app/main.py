@@ -303,14 +303,16 @@ def create_app(settings=None) -> FastAPI:
     app.include_router(admin_settings_router)
     app.include_router(admin_payment_config_router)
 
-    # Phase 10 — Help & Support
+    # Phase 10 — Help & Support + Public Recovery
     from app.routers.support import (
         player_router as player_support_router,
         admin_router as admin_support_router,
     )
+    from app.routers.recovery import router as recovery_router
 
     app.include_router(player_support_router)
     app.include_router(admin_support_router)
+    app.include_router(recovery_router)
 
     return app
 

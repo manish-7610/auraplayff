@@ -8,6 +8,9 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Results — AuraPlayFF Admin</title>
+  <link rel="icon" href="/assets/img/image.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
   <link rel="stylesheet" href="/assets/css/admin-theme.css">
   <style>
     /* ── Tab strip ────────────────────────────────────────────────────────── */
@@ -174,7 +177,7 @@
 
         <!-- Results section (shown after tournament selected) -->
         <div id="results-section" style="display:none">
-          <div id="results-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+          <div id="results-grid" class="two-col-grid">
 
             <!-- Existing results table -->
             <div class="card" style="padding:0">
@@ -296,7 +299,7 @@
               </tbody>
             </table>
           </div>
-          <div id="history-pagination" style="padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--color-border)"></div>
+          <div id="history-pagination" style="padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;border-top:1px solid var(--color-border)"></div>
         </div>
 
       </div><!-- /tab-history -->
@@ -377,11 +380,6 @@
       const sel = document.getElementById('results-tourn-select');
       if (sel.value) sel.dispatchEvent(new Event('change'));
     });
-
-    // Stack columns on mobile
-    if (window.innerWidth < 768) {
-      document.getElementById('results-grid')?.style.setProperty('grid-template-columns','1fr');
-    }
 
     // ── Tab switching ─────────────────────────────────────────────────────
     const tabBtns   = document.querySelectorAll('.results-tab-btn');

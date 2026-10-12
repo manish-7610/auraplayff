@@ -1,46 +1,53 @@
 /* ============================================================
    AuraPlayFF — Global Design System
-   Dark gaming theme | Mobile-first responsive
+   Premium Esports Dark Theme | Mobile-first responsive
    ============================================================ */
+
+/* Font loaded via <link> in HTML for optimal performance */
 
 /* ── CSS Custom Properties ─────────────────────────────────── */
 :root {
-  /* Brand palette */
-  --color-bg:          #0d0f14;
-  --color-bg-2:        #13161e;
-  --color-bg-3:        #1a1e2a;
-  --color-card:        #1e2235;
-  --color-card-hover:  #252a3e;
-  --color-border:      #2e3450;
-  --color-border-light:#3a4060;
+  /* Brand palette — deep charcoal */
+  --color-bg:          #0d0d0f;
+  --color-bg-2:        #111115;
+  --color-bg-3:        #18181f;
+  --color-card:        #1c1c25;
+  --color-card-hover:  #22222e;
+  --color-border:      #2a2a38;
+  --color-border-light:#3a3a50;
 
-  /* Accent — electric orange */
-  --color-accent:      #ff6b35;
-  --color-accent-dim:  #cc5528;
-  --color-accent-glow: rgba(255,107,53,.18);
+  /* Accent — vibrant orange (primary CTA) */
+  --color-accent:      #ff6b00;
+  --color-accent-dim:  #d45800;
+  --color-accent-glow: rgba(255,107,0,.18);
 
-  /* Secondary — neon blue */
-  --color-blue:        #4e9eff;
-  --color-blue-dim:    #3a7fd4;
+  /* Secondary — violet */
+  --color-blue:        #8b5cf6;
+  --color-blue-dim:    #7c3aed;
+  --color-blue-glow:   rgba(139,92,246,.15);
+
+  /* Tertiary — magenta */
+  --color-magenta:     #d946ef;
+  --color-magenta-glow:rgba(217,70,239,.12);
 
   /* Success / Warning / Danger */
-  --color-success:     #2dd66b;
-  --color-warning:     #f5a623;
-  --color-danger:      #ff4757;
-  --color-danger-dim:  #cc3a47;
+  --color-success:     #22c55e;
+  --color-warning:     #f59e0b;
+  --color-danger:      #ef4444;
+  --color-danger-dim:  #dc2626;
 
   /* Text */
-  --color-text:        #e8eaf2;
-  --color-text-muted:  #8891b0;
-  --color-text-dim:    #555e7a;
+  --color-text:        #f0f0f5;
+  --color-text-muted:  #9898b0;
+  --color-text-dim:    #5c5c75;
 
   /* Status chips */
-  --status-open:       #2dd66b;
-  --status-confirmed:  #4e9eff;
-  --status-live:       #ff6b35;
-  --status-completed:  #8891b0;
-  --status-cancelled:  #ff4757;
-  --status-released:   #f5a623;
+  --status-open:       #22c55e;
+  --status-confirmed:  #8b5cf6;
+  --status-live:       #ef4444;
+  --status-completed:  #9898b0;
+  --status-cancelled:  #ef4444;
+  --status-released:   #f59e0b;
 
   /* Spacing scale */
   --space-1: 4px;
@@ -100,6 +107,38 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+/* ── Player portal gaming-grid backdrop ─────────────────────────
+   Applies to all player-facing pages via theme.css.
+   Uses position:fixed so the grid covers the full viewport even
+   when content scrolls. pointer-events:none ensures it never
+   blocks clicks, form inputs, or navigation.
+   Admin pages use admin-theme.css (separate file) and are
+   unaffected by this rule.
+   ─────────────────────────────────────────────────────────────*/
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,107,0,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,107,0,.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* On mobile reduce grid opacity further so it doesn't compete
+   with text, balances, or buttons on small screens. */
+@media (max-width: 600px) {
+  body::before {
+    background-image:
+      linear-gradient(rgba(255,107,0,.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,107,0,.018) 1px, transparent 1px);
+    background-size: 36px 36px;
+  }
 }
 
 img { display: block; max-width: 100%; }
@@ -136,7 +175,8 @@ input, textarea, select { font-family: inherit; }
 .main-content {
   flex: 1;
   min-width: 0;
-  padding-bottom: calc(var(--bottom-nav-h) + var(--space-4));
+  /* Extra bottom clearance for fixed bottom nav + notch/home-indicator */
+  padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + var(--space-6));
 }
 
 @media (min-width: 900px) {
@@ -151,11 +191,22 @@ input, textarea, select { font-family: inherit; }
 
 /* ── Sidebar internals ──────────────────────────────────────── */
 .sidebar-logo {
-  padding: var(--space-6) var(--space-5);
+  padding: var(--space-5) var(--space-5);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-height: 64px;
+}
+
+/* Image logo in sidebar */
+.sidebar-logo img.brand-logo {
+  width: auto;
+  height: 40px;
+  max-width: 130px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .sidebar-logo .logo-text {
@@ -244,12 +295,17 @@ input, textarea, select { font-family: inherit; }
 .bottom-nav {
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: var(--bottom-nav-h);
+  /* height covers the nav items; safe-area padding extends it on notch phones */
+  height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--color-bg-2);
   border-top: 1px solid var(--color-border);
   display: flex;
+  /* Must sit above position:relative/z-index:1 page content */
   z-index: 200;
   backdrop-filter: blur(12px);
+  /* Ensures taps register reliably on Android WebView */
+  touch-action: manipulation;
 }
 
 .bottom-nav a {
@@ -295,7 +351,8 @@ input, textarea, select { font-family: inherit; }
   justify-content: space-between;
   position: sticky;
   top: 0;
-  z-index: 90;
+  /* Above position:relative page cards (z-index:1) and hero (isolation:isolate) */
+  z-index: 95;
 }
 
 @media (min-width: 900px) { .topbar { display: none; } }
@@ -308,6 +365,17 @@ input, textarea, select { font-family: inherit; }
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+/* Image logo in topbar (mobile) */
+.topbar-logo img.brand-logo-mobile {
+  height: 36px;
+  width: auto;
+  max-width: 110px;
+  object-fit: contain;
+  display: block;
 }
 
 .topbar-actions { display: flex; align-items: center; gap: var(--space-3); }
@@ -439,17 +507,17 @@ input, textarea, select { font-family: inherit; }
 
 .badge::before { content: '●'; font-size: 8px; }
 
-.badge-open       { background: rgba(45,214,107,.15); color: var(--status-open); }
-.badge-confirmed  { background: rgba(78,158,255,.15); color: var(--status-confirmed); }
-.badge-live       { background: rgba(255,107,53,.2);  color: var(--status-live); animation: pulse-badge 2s ease-in-out infinite; }
-.badge-completed  { background: rgba(136,145,176,.15);color: var(--status-completed); }
-.badge-cancelled  { background: rgba(255,71,87,.15);  color: var(--status-cancelled); }
-.badge-room_released { background: rgba(245,166,35,.15); color: var(--status-released); }
-.badge-result_entry { background: rgba(78,158,255,.15); color: var(--status-confirmed); }
-.badge-pending    { background: rgba(245,166,35,.15); color: var(--color-warning); }
-.badge-paid, .badge-approved { background: rgba(45,214,107,.15); color: var(--color-success); }
-.badge-rejected   { background: rgba(255,71,87,.15);  color: var(--color-danger); }
-.badge-processing { background: rgba(78,158,255,.15); color: var(--color-blue); }
+.badge-open       { background: rgba(34,197,94,.15);  color: var(--status-open); }
+.badge-confirmed  { background: rgba(139,92,246,.15); color: var(--status-confirmed); }
+.badge-live       { background: rgba(239,68,68,.2);   color: var(--status-live); animation: pulse-badge 2s ease-in-out infinite; }
+.badge-completed  { background: rgba(152,152,176,.15);color: var(--status-completed); }
+.badge-cancelled  { background: rgba(239,68,68,.15);  color: var(--status-cancelled); }
+.badge-room_released { background: rgba(245,158,11,.15); color: var(--status-released); }
+.badge-result_entry { background: rgba(139,92,246,.15); color: var(--status-confirmed); }
+.badge-pending    { background: rgba(245,158,11,.15); color: var(--color-warning); }
+.badge-paid, .badge-approved { background: rgba(34,197,94,.15); color: var(--color-success); }
+.badge-rejected   { background: rgba(239,68,68,.15);  color: var(--color-danger); }
+.badge-processing { background: rgba(139,92,246,.15); color: var(--color-blue); }
 
 @keyframes pulse-badge {
   0%, 100% { opacity: 1; }
@@ -1072,6 +1140,8 @@ tbody tr:hover { background: var(--color-bg-3); }
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  position: relative;
+  z-index: 1;
 }
 
 .hero-title .accent {
@@ -1086,9 +1156,11 @@ tbody tr:hover { background: var(--color-bg-3); }
   color: var(--color-text-muted);
   max-width: 480px;
   margin: 0 auto var(--space-6);
+  position: relative;
+  z-index: 1;
 }
 
-.hero-actions { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; }
+.hero-actions { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
 
 @media (min-width: 900px) {
   .hero-title { font-size: var(--text-3xl); }
@@ -1169,7 +1241,9 @@ html, body { overflow-x: hidden; }
   .bottom-nav a span:not(.nav-icon):not(.nav-badge) {
     display: none;
   }
-  .bottom-nav { height: 52px; }
+  .bottom-nav {
+    height: calc(52px + env(safe-area-inset-bottom, 0px));
+  }
   :root { --bottom-nav-h: 52px; }
 }
 
@@ -1207,6 +1281,12 @@ html, body { overflow-x: hidden; }
   .main-content { margin-left: var(--sidebar-w); }
 }
 
+/* ── Tablet (640–899px): wider page padding, no sidebar shift ── */
+@media (min-width: 640px) and (max-width: 899px) {
+  :root { --page-px: 24px; }
+  .tournament-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}
+
 /* ── Topbar: avoid overlap with sidebar on desktop ─────────── */
 @media (min-width: 900px) {
   .topbar { display: none !important; }
@@ -1237,23 +1317,12 @@ html, body { overflow-x: hidden; }
   .toast-container { right: var(--space-2); left: var(--space-2); max-width: none; width: auto; }
 }
 
-/* ── Page container: safe bottom padding for bottom nav ─── */
-.main-content {
-  padding-bottom: calc(var(--bottom-nav-h) + var(--space-6));
-}
-@media (min-width: 900px) {
-  .main-content { padding-bottom: var(--space-8); }
-}
-
 /* ── Focus visible: accessibility ─────────────────────────── */
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 button:focus-visible, a:focus-visible { border-radius: var(--radius-sm); }
-
-/* ── Smooth image loading ──────────────────────────────────── */
-img { loading: lazy; }
 
 /* ── Input number: hide spinner ────────────────────────────── */
 input[type=number]::-webkit-inner-spin-button,
@@ -1271,4 +1340,380 @@ input[type=number] { -moz-appearance: textfield; }
   .method-tabs { flex-direction: column; }
   .method-tab { text-align: left; border-bottom: none; border-left: 3px solid transparent; margin-bottom: 0; }
   .method-tab.active { border-left-color: var(--color-accent); border-bottom-color: transparent; }
+}
+
+
+/* ── More Menu (mobile player nav) ──────────────────────────────────────────── */
+
+.bottom-nav-more {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color var(--transition);
+  padding: 0;
+  min-width: 0;
+}
+.bottom-nav-more:hover,
+.bottom-nav-more[aria-expanded="true"] { color: var(--color-accent); }
+.bottom-nav-more .nav-icon { font-size: 22px; line-height: 1; }
+
+/* More menu backdrop + bottom sheet */
+.more-menu-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .6);
+  z-index: 300;
+  align-items: flex-end;
+  /* Ensure backdrop intercepts touches on iOS Safari */
+  -webkit-tap-highlight-color: transparent;
+}
+.more-menu-overlay.open {
+  display: flex;
+  pointer-events: all;
+}
+
+.more-menu-sheet {
+  width: 100%;
+  max-height: 80vh;
+  background: var(--color-bg-2);
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: more-sheet-up .22s ease forwards;
+}
+
+@keyframes more-sheet-up {
+  from { transform: translateY(100%); opacity: .6; }
+  to   { transform: translateY(0);    opacity: 1;  }
+}
+
+.more-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text);
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-2);
+  z-index: 1;
+}
+
+.more-menu-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  font-family: inherit;
+}
+.more-menu-close:hover { color: var(--color-text); }
+
+.more-menu-nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+@media (max-width: 360px) {
+  .more-menu-nav { grid-template-columns: repeat(2, 1fr); }
+}
+
+.more-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3);
+  background: var(--color-bg-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.more-menu-item:hover,
+.more-menu-item.active {
+  background: var(--color-bg);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.more-menu-item .more-menu-icon { font-size: 24px; line-height: 1; }
+
+/* Hide More overlay on desktop — sidebar covers all items */
+@media (min-width: 900px) {
+  .more-menu-overlay { display: none !important; }
+  .bottom-nav-more   { display: none !important; }
+}
+
+
+/* ── Auth page logo image ─────────────────────────────────── */
+.auth-logo-img {
+  display: block;
+  width: auto;
+  height: 64px;
+  max-width: 180px;
+  object-fit: contain;
+  margin: 0 auto var(--space-3);
+}
+
+/* ── Tournament card premium enhancements ────────────────── */
+.tournament-card {
+  border-left: 3px solid transparent;
+  transition: background var(--transition), border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+.tournament-card:hover {
+  border-left-color: var(--color-accent);
+}
+.tournament-card.status-live {
+  border-left-color: var(--color-danger);
+}
+.tournament-card.status-open {
+  border-left-color: var(--color-success);
+}
+.tournament-card.status-room_released {
+  border-left-color: var(--color-warning);
+}
+
+/* ── Sidebar active state — stronger orange accent ────────── */
+.sidebar-nav a.active {
+  background: rgba(255,107,0,.1);
+  color: var(--color-accent);
+}
+.sidebar-nav a.active::before {
+  background: var(--color-accent);
+  width: 3px;
+}
+
+/* ── Wallet balance card accents ──────────────────────────── */
+.balance-card.accent-border { border-left: 3px solid var(--color-accent); }
+.balance-card.blue-border   { border-left: 3px solid var(--color-blue); }
+.balance-card.warn-border   { border-left: 3px solid var(--color-warning); }
+
+/* ── Premium button hover effects ────────────────────────── */
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-dim);
+  box-shadow: 0 4px 16px rgba(255,107,0,.35);
+}
+
+/* ── Card subtle hover glow ───────────────────────────────── */
+.card-hover:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px var(--color-accent);
+}
+
+/* ── Section dividers ─────────────────────────────────────── */
+.section-title {
+  position: relative;
+  padding-left: var(--space-3);
+}
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 80%;
+  background: var(--color-accent);
+  border-radius: 2px;
+}
+
+/* ── Hero premium gradient overlay ───────────────────────── */
+.hero {
+  background:
+    linear-gradient(135deg, rgba(255,107,0,.06) 0%, transparent 50%),
+    linear-gradient(225deg, rgba(139,92,246,.06) 0%, transparent 50%),
+    linear-gradient(135deg, var(--color-bg-2) 0%, var(--color-bg-3) 100%);
+  position: relative;
+  overflow: hidden;
+  /* Promote to own compositing layer to prevent Android repaint jank */
+  isolation: isolate;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(255,107,0,.04) 0%, transparent 70%);
+  pointer-events: none;
+  /* Keep decoration inside the hero stacking context */
+  z-index: 0;
+}
+
+/* ── Referral CTA card ────────────────────────────────────── */
+#referral-cta {
+  border-color: var(--color-accent);
+  position: relative;
+  overflow: hidden;
+}
+#referral-cta::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--color-accent), var(--color-blue));
+}
+
+/* ── Favicon link in head (declared via CSS for reference) ── */
+/* Favicon is set via <link rel="icon"> in each HTML page */
+
+/* ── Join Our Community Section ─────────────────────────────── */
+.community-section {
+  margin-bottom: var(--space-10);
+}
+
+.community-section .section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.community-section .section-header .section-title {
+  margin: 0;
+}
+
+.community-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 480px) {
+  .community-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 720px) {
+  .community-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.community-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  transition: background var(--transition), border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+  text-decoration: none;
+  color: inherit;
+}
+
+.community-card:hover {
+  background: var(--color-card-hover);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.community-card.community-whatsapp-channel:hover {
+  border-color: #25d366;
+  box-shadow: 0 0 20px rgba(37, 211, 102, .15);
+}
+
+.community-card.community-whatsapp-group:hover {
+  border-color: #25d366;
+  box-shadow: 0 0 20px rgba(37, 211, 102, .15);
+}
+
+.community-card.community-youtube:hover {
+  border-color: #ff0000;
+  box-shadow: 0 0 20px rgba(255, 0, 0, .15);
+}
+
+.community-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.community-whatsapp-channel .community-card-icon,
+.community-whatsapp-group .community-card-icon {
+  background: rgba(37, 211, 102, .15);
+}
+
+.community-youtube .community-card-icon {
+  background: rgba(255, 0, 0, .12);
+}
+
+.community-card-body {
+  flex: 1;
+}
+
+.community-card-title {
+  font-size: var(--text-base);
+  font-weight: 700;
+  margin-bottom: var(--space-1);
+  color: var(--color-text);
+}
+
+.community-card-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.community-card .btn {
+  align-self: stretch;
+  justify-content: center;
+  margin-top: var(--space-2);
+}
+
+.community-card.community-whatsapp-channel .btn,
+.community-card.community-whatsapp-group .btn {
+  background: #25d366;
+  color: #fff;
+}
+
+.community-card.community-whatsapp-channel .btn:hover,
+.community-card.community-whatsapp-group .btn:hover {
+  background: #1ebe5d;
+  transform: translateY(-1px);
+}
+
+.community-card.community-youtube .btn {
+  background: #ff0000;
+  color: #fff;
+}
+
+.community-card.community-youtube .btn:hover {
+  background: #cc0000;
+  transform: translateY(-1px);
 }

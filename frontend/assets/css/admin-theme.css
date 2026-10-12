@@ -1,53 +1,54 @@
 /* ============================================================
    AuraPlayFF — Admin Design System
-   Dark gaming theme — admin/agent operational platform
-   Extends theme.css design tokens, admin-specific layout.
+   Premium Esports Dark Theme — admin/agent operational platform
    ============================================================ */
 
-/* ── CSS Custom Properties (extends player theme) ──────────── */
+/* Font loaded via <link> in HTML for optimal performance */
+
+/* ── CSS Custom Properties ──────────────────────────────── */
 :root {
-  /* Brand palette (inherited from theme.css) */
-  --color-bg:          #0d0f14;
-  --color-bg-2:        #13161e;
-  --color-bg-3:        #1a1e2a;
-  --color-card:        #1e2235;
-  --color-card-hover:  #252a3e;
-  --color-border:      #2e3450;
-  --color-border-light:#3a4060;
+  /* Brand palette — deep charcoal */
+  --color-bg:          #0d0d0f;
+  --color-bg-2:        #111115;
+  --color-bg-3:        #18181f;
+  --color-card:        #1c1c25;
+  --color-card-hover:  #22222e;
+  --color-border:      #2a2a38;
+  --color-border-light:#3a3a50;
 
-  /* Accent */
-  --color-accent:      #ff6b35;
-  --color-accent-dim:  #cc5528;
-  --color-accent-glow: rgba(255,107,53,.18);
+  /* Accent — vibrant orange */
+  --color-accent:      #ff6b00;
+  --color-accent-dim:  #d45800;
+  --color-accent-glow: rgba(255,107,0,.18);
 
-  /* Secondary */
-  --color-blue:        #4e9eff;
-  --color-blue-dim:    #3a7fd4;
+  /* Secondary — violet */
+  --color-blue:        #8b5cf6;
+  --color-blue-dim:    #7c3aed;
 
   /* Status */
-  --color-success:     #2dd66b;
-  --color-warning:     #f5a623;
-  --color-danger:      #ff4757;
-  --color-danger-dim:  #cc3a47;
+  --color-success:     #22c55e;
+  --color-warning:     #f59e0b;
+  --color-danger:      #ef4444;
+  --color-danger-dim:  #dc2626;
 
   /* Text */
-  --color-text:        #e8eaf2;
-  --color-text-muted:  #8891b0;
-  --color-text-dim:    #555e7a;
+  --color-text:        #f0f0f5;
+  --color-text-muted:  #9898b0;
+  --color-text-dim:    #5c5c75;
 
   /* Tournament status chips */
-  --status-draft:      #8891b0;
-  --status-open:       #2dd66b;
-  --status-confirmed:  #4e9eff;
-  --status-released:   #f5a623;
-  --status-live:       #ff6b35;
-  --status-result:     #a78bfa;
-  --status-completed:  #8891b0;
-  --status-cancelled:  #ff4757;
+  --status-draft:      #9898b0;
+  --status-open:       #22c55e;
+  --status-confirmed:  #8b5cf6;
+  --status-released:   #f59e0b;
+  --status-live:       #ef4444;
+  --status-result:     #d946ef;
+  --status-completed:  #9898b0;
+  --status-cancelled:  #ef4444;
 
   /* Admin layout */
   --sidebar-width:     240px;
-  --topbar-height:     56px;
+  --topbar-height:     58px;
   --content-max:       1400px;
 
   /* Spacing */
@@ -129,12 +130,22 @@ a:hover { color: var(--color-accent); }
 }
 
 .sidebar-logo {
-  padding: var(--space-5) var(--space-5);
+  padding: var(--space-4) var(--space-5);
   display: flex;
   align-items: center;
   gap: var(--space-3);
   border-bottom: 1px solid var(--color-border);
   min-height: var(--topbar-height);
+}
+
+/* Image logo in admin sidebar */
+.sidebar-logo img.brand-logo {
+  height: 38px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .sidebar-logo .logo-icon {
@@ -178,8 +189,8 @@ a:hover { color: var(--color-accent); }
   font-size: var(--text-xs);
 }
 
-.sidebar-role .role-super_admin { background: rgba(255,107,53,.15); color: var(--color-accent); }
-.sidebar-role .role-agent       { background: rgba(78,158,255,.15); color: var(--color-blue); }
+.sidebar-role .role-super_admin { background: rgba(255,107,0,.15); color: var(--color-accent); }
+.sidebar-role .role-agent       { background: rgba(139,92,246,.15); color: var(--color-blue); }
 
 /* Nav sections */
 .sidebar-nav {
@@ -213,14 +224,14 @@ a:hover { color: var(--color-accent); }
 }
 
 .nav-item:hover {
-  background: var(--color-bg-3);
+  background: rgba(255,255,255,.04);
   color: var(--color-text);
 }
 
 .nav-item.active {
-  background: var(--color-accent-glow);
+  background: rgba(255,107,0,.1);
   color: var(--color-accent);
-  border-right: 2px solid var(--color-accent);
+  border-right: 3px solid var(--color-accent);
 }
 
 .nav-item .nav-icon { width: 16px; text-align: center; flex-shrink: 0; font-size: 15px; }
@@ -292,6 +303,7 @@ body.role-agent .admin-only { display: none !important; }
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden; /* guard against fixed-width children causing body scroll */
 }
 
 /* Topbar */
@@ -324,6 +336,10 @@ body.role-agent .admin-only { display: none !important; }
   font-weight: 600;
   color: var(--color-text);
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .topbar-actions {
@@ -365,6 +381,7 @@ body.role-agent .admin-only { display: none !important; }
   max-width: var(--content-max);
   width: 100%;
   margin: 0 auto;
+  overflow-x: hidden; /* prevent non-table children from causing body-level scroll */
 }
 
 /* ── Page Header ───────────────────────────────────────────── */
@@ -415,7 +432,7 @@ body.role-agent .admin-only { display: none !important; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
 .btn-primary   { background: var(--color-accent);   color: #fff; border-color: var(--color-accent); }
-.btn-primary:hover:not(:disabled) { background: var(--color-accent-dim); }
+.btn-primary:hover:not(:disabled) { background: var(--color-accent-dim); box-shadow: 0 4px 16px rgba(255,107,0,.3); }
 
 .btn-secondary { background: var(--color-bg-3); color: var(--color-text); border-color: var(--color-border); }
 .btn-secondary:hover:not(:disabled) { background: var(--color-card); }
@@ -458,6 +475,9 @@ body.role-agent .admin-only { display: none !important; }
   font-size: var(--text-md);
   font-weight: 600;
   color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 /* ── Stat Cards ────────────────────────────────────────────── */
@@ -515,6 +535,7 @@ body.role-agent .admin-only { display: none !important; }
 /* ── Tables ────────────────────────────────────────────────── */
 .table-container {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* iOS momentum scroll */
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
 }
@@ -573,37 +594,37 @@ tbody td {
   white-space: nowrap;
 }
 
-.chip-draft       { background: rgba(136,145,176,.15); color: var(--status-draft); }
-.chip-open        { background: rgba(45,214,107,.15);  color: var(--status-open); }
-.chip-confirmed   { background: rgba(78,158,255,.15);  color: var(--status-confirmed); }
-.chip-released    { background: rgba(245,166,35,.15);  color: var(--status-released); }
-.chip-live        { background: rgba(255,107,53,.15);  color: var(--status-live); }
-.chip-result_entry{ background: rgba(167,139,250,.15); color: var(--status-result); }
-.chip-completed   { background: rgba(136,145,176,.15); color: var(--status-completed); }
-.chip-cancelled   { background: rgba(255,71,87,.15);   color: var(--status-cancelled); }
+.chip-draft       { background: rgba(152,152,176,.15); color: var(--status-draft); }
+.chip-open        { background: rgba(34,197,94,.15);   color: var(--status-open); }
+.chip-confirmed   { background: rgba(139,92,246,.15);  color: var(--status-confirmed); }
+.chip-released    { background: rgba(245,158,11,.15);  color: var(--status-released); }
+.chip-live        { background: rgba(239,68,68,.15);   color: var(--status-live); }
+.chip-result_entry{ background: rgba(217,70,239,.15);  color: var(--status-result); }
+.chip-completed   { background: rgba(152,152,176,.15); color: var(--status-completed); }
+.chip-cancelled   { background: rgba(239,68,68,.15);   color: var(--status-cancelled); }
 
-.chip-active      { background: rgba(45,214,107,.15);  color: var(--color-success); }
-.chip-inactive    { background: rgba(255,71,87,.15);   color: var(--color-danger); }
-.chip-banned      { background: rgba(255,71,87,.15);   color: var(--color-danger); }
+.chip-active      { background: rgba(34,197,94,.15);   color: var(--color-success); }
+.chip-inactive    { background: rgba(239,68,68,.15);   color: var(--color-danger); }
+.chip-banned      { background: rgba(239,68,68,.15);   color: var(--color-danger); }
 
-.chip-pending     { background: rgba(245,166,35,.15);  color: var(--color-warning); }
-.chip-approved    { background: rgba(45,214,107,.15);  color: var(--color-success); }
-.chip-rejected    { background: rgba(255,71,87,.15);   color: var(--color-danger); }
-.chip-paid        { background: rgba(45,214,107,.15);  color: var(--color-success); }
-.chip-processing  { background: rgba(78,158,255,.15);  color: var(--color-blue); }
+.chip-pending     { background: rgba(245,158,11,.15);  color: var(--color-warning); }
+.chip-approved    { background: rgba(34,197,94,.15);   color: var(--color-success); }
+.chip-rejected    { background: rgba(239,68,68,.15);   color: var(--color-danger); }
+.chip-paid        { background: rgba(34,197,94,.15);   color: var(--color-success); }
+.chip-processing  { background: rgba(139,92,246,.15);  color: var(--color-blue); }
 
-.chip-success     { background: rgba(45,214,107,.15);  color: var(--color-success); }
-.chip-failed      { background: rgba(255,71,87,.15);   color: var(--color-danger); }
-.chip-running     { background: rgba(78,158,255,.15);  color: var(--color-blue); }
-.chip-skipped     { background: rgba(136,145,176,.15); color: var(--status-draft); }
+.chip-success     { background: rgba(34,197,94,.15);   color: var(--color-success); }
+.chip-failed      { background: rgba(239,68,68,.15);   color: var(--color-danger); }
+.chip-running     { background: rgba(139,92,246,.15);  color: var(--color-blue); }
+.chip-skipped     { background: rgba(152,152,176,.15); color: var(--status-draft); }
 
-.chip-met         { background: rgba(45,214,107,.15);  color: var(--color-success); }
-.chip-exceeded    { background: rgba(78,158,255,.15);  color: var(--color-blue); }
-.chip-missed      { background: rgba(255,71,87,.15);   color: var(--color-danger); }
-.chip-grace       { background: rgba(245,166,35,.15);  color: var(--color-warning); }
+.chip-met         { background: rgba(34,197,94,.15);   color: var(--color-success); }
+.chip-exceeded    { background: rgba(139,92,246,.15);  color: var(--color-blue); }
+.chip-missed      { background: rgba(239,68,68,.15);   color: var(--color-danger); }
+.chip-grace       { background: rgba(245,158,11,.15);  color: var(--color-warning); }
 
-.chip-super_admin { background: rgba(255,107,53,.15);  color: var(--color-accent); }
-.chip-agent       { background: rgba(78,158,255,.15);  color: var(--color-blue); }
+.chip-super_admin { background: rgba(255,107,0,.15);   color: var(--color-accent); }
+.chip-agent       { background: rgba(139,92,246,.15);  color: var(--color-blue); }
 
 /* ── Forms ─────────────────────────────────────────────────── */
 .form-group { margin-bottom: var(--space-4); }
@@ -711,9 +732,10 @@ tbody td {
 .pagination-btns {
   display: flex;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
-.pagination-btns .btn { min-width: 36px; justify-content: center; }
+.pagination-btns .btn { min-width: 36px; min-height: 36px; justify-content: center; }
 
 /* ── Modals ─────────────────────────────────────────────────── */
 .modal-overlay {
@@ -889,10 +911,10 @@ tbody td {
   gap: var(--space-3);
 }
 
-.alert-error   { background: rgba(255,71,87,.1);  border: 1px solid rgba(255,71,87,.3);  color: #ff8a96; }
-.alert-success { background: rgba(45,214,107,.1); border: 1px solid rgba(45,214,107,.3); color: #6be6a3; }
-.alert-warning { background: rgba(245,166,35,.1); border: 1px solid rgba(245,166,35,.3); color: #f5c36a; }
-.alert-info    { background: rgba(78,158,255,.1); border: 1px solid rgba(78,158,255,.3); color: #80bfff; }
+.alert-error   { background: rgba(239,68,68,.1);   border: 1px solid rgba(239,68,68,.3);  color: #fca5a5; }
+.alert-success { background: rgba(34,197,94,.1);   border: 1px solid rgba(34,197,94,.3);  color: #86efac; }
+.alert-warning { background: rgba(245,158,11,.1);  border: 1px solid rgba(245,158,11,.3); color: #fcd34d; }
+.alert-info    { background: rgba(139,92,246,.1);  border: 1px solid rgba(139,92,246,.3); color: #c4b5fd; }
 
 /* ── Login Page ─────────────────────────────────────────────── */
 .login-page {
@@ -1050,8 +1072,30 @@ tbody td {
   display: none;
   position: fixed;
   inset: 0;
+  background: rgba(0,0,0,.65);
+  z-index: 199;
+  backdrop-filter: blur(2px);
+}
+  position: fixed;
+  inset: 0;
   background: rgba(0,0,0,.6);
   z-index: 199;
+}
+
+/* ── Responsive grid utility classes ────────────────────────── */
+/* Use these instead of inline style="display:grid;grid-template-columns:1fr 1fr" */
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.stats-grid-3col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-top: 12px;
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */
@@ -1092,6 +1136,23 @@ tbody td {
   }
 }
 
+@media (max-width: 768px) {
+  /* Tabs: scroll horizontally rather than overflow the page */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+  .tab-btn {
+    flex-shrink: 0;
+  }
+
+  /* Two-column inline-grid utility: collapse to single column on tablet/mobile */
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 480px) {
   .stats-grid {
     grid-template-columns: 1fr 1fr;
@@ -1116,8 +1177,102 @@ tbody td {
   .search-input { max-width: unset; }
 
   .modal { padding: var(--space-4); }
+
+  /* Keep action buttons compact and prevent awkward wrapping */
+  .td-actions {
+    white-space: nowrap;
+  }
+  .td-actions .btn {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  /* Topbar: let title flex-shrink so notification button is never clipped */
+  .topbar-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar-notif-btn {
+    flex-shrink: 0;
+  }
+
+  /* Pagination buttons: ensure readable tap targets */
+  .pagination {
+    gap: var(--space-2);
+  }
+  .pagination-btns {
+    gap: 4px;
+  }
+  .pagination-btns .btn {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  /* Two-column inline-grid utility: collapse to single column */
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Three-column stats grid: collapse to two columns */
+  .stats-grid-3col {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Inline pagination wrappers (history-pagination, th-pagination) */
+  .inline-pagination {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
 }
 
 @media (max-width: 360px) {
   .stats-grid { grid-template-columns: 1fr; }
+
+  /* Three-column stats grid: collapse to single column at very narrow widths */
+  .stats-grid-3col {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ── Auth/Login page logo image ──────────────────────────── */
+.login-logo img.brand-logo-admin {
+  display: block;
+  width: auto;
+  height: 60px;
+  max-width: 160px;
+  object-fit: contain;
+  margin: 0 auto var(--space-3);
+}
+
+/* ── Topbar mobile logo image ────────────────────────────── */
+.topbar-brand-img {
+  height: 34px;
+  width: auto;
+  max-width: 110px;
+  object-fit: contain;
+  display: block;
+}
+
+/* ── Stat card accent left borders ───────────────────────── */
+.stat-card.accent  { border-color: var(--color-accent); border-left-width: 3px; }
+.stat-card.success { border-color: var(--color-success); border-left-width: 3px; }
+.stat-card.warning { border-color: var(--color-warning); border-left-width: 3px; }
+.stat-card.danger  { border-color: var(--color-danger); border-left-width: 3px; }
+.stat-card.blue    { border-color: var(--color-blue); border-left-width: 3px; }
+
+.stat-card .stat-value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+}
+
+/* ── Table row alternating shading ───────────────────────── */
+tbody tr:nth-child(even) {
+  background: rgba(255,255,255,.016);
 }

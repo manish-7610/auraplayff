@@ -91,8 +91,8 @@ class AdminSupportResponse(BaseModel):
     """Full support request detail for staff."""
 
     id: uuid.UUID
-    user_id: uuid.UUID
-    username: str                          # denormalised
+    user_id: Optional[uuid.UUID]        # None for recovery requests
+    username: Optional[str]             # denormalised; None for recovery requests
     tournament_id: Optional[uuid.UUID]
     tournament_title: Optional[str]
     message: str
@@ -102,6 +102,10 @@ class AdminSupportResponse(BaseModel):
     admin_response: Optional[str]
     resolved_at: Optional[datetime]
     resolved_by_id: Optional[uuid.UUID]
+    # Recovery-specific fields (populated when is_recovery=True)
+    is_recovery: bool = False
+    requester_username: Optional[str] = None   # self-reported, unverified
+    requester_ff_uid: Optional[str] = None     # self-reported, unverified
     created_at: datetime
     updated_at: datetime
 

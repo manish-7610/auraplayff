@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Admin UI: show Cancel button for room_released tournaments with a warning confirmation dialog. Independent of FEAT-001 (frontend-only change, no backend dependency other than the backend fix already done in FEAT-001).",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "Step 1 — frontend/assets/js/admin/admin-tournaments.js, _renderCancelBtn function: Change 'const cancellable = [\"open\", \"confirmed\"].includes(t.status)' to 'const cancellable = [\"open\", \"confirmed\", \"room_released\"].includes(t.status)'. Update btn.onclick to use a conditional confirmation message: for room_released, use the warning text 'WARNING: Room credentials have already been released to players.\\n\\nAre you sure you want to cancel this tournament?\\n\\nAll joined players will receive a full entry-fee refund. This action cannot be undone.'; for open/confirmed, use the existing 'Cancel tournament and refund all players?' message.",
     "Step 2 — frontend/assets/js/admin/admin-tournaments.js, _renderActionBtn function, room_released branch: Replace the paragraph text that contains 'locked — cancellation is no longer allowed' with updated copy: 'Room credentials were released to players${releasedAt}. Players may continue joining until the tournament goes live. You may cancel this tournament using the Cancel button below if it cannot proceed (e.g. minimum players not met) — all joined players will receive a full refund.' Keep the Go Live button unchanged."
@@ -19,5 +19,5 @@
     "Manual browser verification: Open admin tournament detail for live/completed tournament. Verify Cancel button hidden."
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Step 1 (_renderCancelBtn): Added 'room_released' to the cancellable statuses array. Updated btn.onclick to use a conditional confirmation message — room_released gets the full WARNING dialog with refund notice; open/confirmed keep the original simple message. Step 2 (_renderActionBtn, room_released branch): Replaced card title 'Room Released — Tournament Locked' with 'Room Released'. Removed the 'locked — cancellation is no longer allowed' paragraph. New paragraph now explains that players may continue joining, and that the Cancel button below can be used if the tournament cannot proceed, with a full refund guarantee. Go Live button and all other structure preserved unchanged."
 }
