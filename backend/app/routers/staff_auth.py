@@ -8,8 +8,6 @@ Completely separate from player auth.
 Staff tokens have audience="staff".
 Player tokens are rejected by all staff routes.
 """
-from __future__ import annotations
-
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Cookie, Depends, Request, Response

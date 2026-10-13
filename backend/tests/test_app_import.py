@@ -228,3 +228,61 @@ def test_model_validator_after_no_class_annotation_at_definition_time() -> None:
     _GuardModel.model_rebuild(raise_errors=True)
     instance = _GuardModel(x=42)
     assert instance.x == 42
+
+
+# ---------------------------------------------------------------------------
+# Test 7 — Body(...) params on rate-limited routes resolve to actual classes
+# ---------------------------------------------------------------------------
+
+def test_rate_limited_route_body_annotations_are_not_forward_refs() -> None:
+    """
+    Regression: PydanticUserError: TypeAdapter[Annotated[ForwardRef('PlayerRegisterRequest'),
+    Body(PydanticUndefined)]] is not fully defined.
+
+    Root cause: `from __future__ import annotations` (PEP 563) stores ALL
+    annotations as strings.  slowapi's @limiter.limit wraps the handler with
+    functools.wraps, which copies __annotations__ but NOT __globals__.  The
+    wrapper lives in slowapi's module namespace, so `typing.get_type_hints`
+    on the wrapper cannot resolve 'PlayerRegisterRequest' → ForwardRef stays
+    unresolved → Pydantic's TypeAdapter raises PydanticUserError at request time.
+
+    Fix: remove `from __future__ import annotations` from auth.py and
+    staff_auth.py so annotations are evaluated immediately to real class objects.
+    The wrapper's __annotations__['body'] is then the actual class, not a string,
+    and no get_type_hints resolution is needed.
+
+    This test asserts that the body annotation on every rate-limited route
+    handler is the real class object — not a string or ForwardRef.
+    """
+    _set_min_env()
+    import typing
+
+    from app.routers.auth import register, login, reset_password
+    from app.routers.staff_auth import staff_login
+    from app.schemas.auth import (
+        PlayerRegisterRequest,
+        PlayerLoginRequest,
+        ResetPasswordRequest,
+        StaffLoginRequest,
+    )
+
+    cases = [
+        (register,      "body", PlayerRegisterRequest,  "POST /api/auth/register"),
+        (login,         "body", PlayerLoginRequest,      "POST /api/auth/login"),
+        (reset_password,"body", ResetPasswordRequest,    "POST /api/auth/reset-password"),
+        (staff_login,   "body", StaffLoginRequest,       "POST /api/admin/auth/login"),
+    ]
+
+    for func, param_name, expected_class, route in cases:
+        ann = func.__annotations__.get(param_name)
+        assert ann is not None, (
+            f"{route}: wrapper has no '{param_name}' annotation"
+        )
+        assert ann is expected_class, (
+            f"{route}: body annotation is {ann!r} (type={type(ann).__name__}), "
+            f"expected {expected_class!r}. "
+            f"This means 'from __future__ import annotations' is still present "
+            f"in the router file — the annotation is stored as a string/ForwardRef "
+            f"instead of the actual class, which breaks FastAPI+Pydantic TypeAdapter "
+            f"resolution on the slowapi-wrapped handler."
+        )

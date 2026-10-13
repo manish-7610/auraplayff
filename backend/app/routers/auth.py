@@ -9,8 +9,6 @@ Player authentication routes:
 Refresh tokens travel exclusively in httpOnly Secure cookies.
 Access tokens are returned in the JSON body and kept in JS memory on the client.
 """
-from __future__ import annotations
-
 import uuid
 from datetime import datetime, timezone
 
