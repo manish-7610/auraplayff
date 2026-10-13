@@ -17,7 +17,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -258,7 +258,7 @@ class CreateTournamentRequest(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_player_limits(self) -> "CreateTournamentRequest":
+    def validate_player_limits(self) -> Self:
         if self.min_players > self.max_players:
             raise ValueError("min_players cannot exceed max_players.")
         return self

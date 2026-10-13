@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
+from typing import Self
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -69,7 +70,7 @@ class RecoveryRequestCreate(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def require_contact(self) -> "RecoveryRequestCreate":
+    def require_contact(self) -> Self:
         wa = (self.whatsapp_number or "").strip()
         ig = (self.instagram_id or "").strip()
         if not wa and not ig:

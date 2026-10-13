@@ -16,7 +16,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any, Optional, Self
 
 from pydantic import BaseModel, Field, field_serializer, model_validator
 
@@ -280,7 +280,7 @@ class AdminAdjustRequest(BaseModel):
     reason: str = Field(..., min_length=5, max_length=500)
 
     @model_validator(mode="after")
-    def amount_precision(self) -> "AdminAdjustRequest":
+    def amount_precision(self) -> Self:
         # Ensure no more than 2 decimal places
         if self.amount != self.amount.quantize(Decimal("0.01")):
             raise ValueError("Amount must have at most 2 decimal places.")

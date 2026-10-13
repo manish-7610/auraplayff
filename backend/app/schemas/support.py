@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Self
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -51,7 +51,7 @@ class SupportRequestCreate(BaseModel):
     )
 
     @model_validator(mode="after")
-    def require_at_least_one_contact(self) -> "SupportRequestCreate":
+    def require_at_least_one_contact(self) -> Self:
         wa = (self.whatsapp_number or "").strip()
         ig = (self.instagram_id or "").strip()
         if not wa and not ig:
@@ -134,7 +134,7 @@ class AdminUpdateSupportRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def require_at_least_one_field(self) -> "AdminUpdateSupportRequest":
+    def require_at_least_one_field(self) -> Self:
         if self.status is None and self.admin_response is None:
             raise ValueError("Provide at least one of: status, admin_response.")
         return self

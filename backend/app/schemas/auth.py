@@ -6,7 +6,7 @@ Password hashes are never included in any response schema.
 from __future__ import annotations
 
 import re
-from typing import Optional
+from typing import Optional, Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -100,7 +100,7 @@ class PlayerRegisterRequest(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def passwords_match(self) -> "PlayerRegisterRequest":
+    def passwords_match(self) -> Self:
         if self.password != self.confirm_password:
             raise ValueError("Password and confirmation do not match.")
         return self
@@ -159,7 +159,7 @@ class ResetPasswordRequest(BaseModel):
         return _validate_password_strength(v)
 
     @model_validator(mode="after")
-    def passwords_match(self) -> "ResetPasswordRequest":
+    def passwords_match(self) -> Self:
         if self.new_password != self.confirm_password:
             raise ValueError("Password and confirmation do not match.")
         return self
