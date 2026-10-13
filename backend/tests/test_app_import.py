@@ -162,3 +162,69 @@ def test_uvicorn_app_string_reference() -> None:
     obj = getattr(mod, attr)
     assert obj is not None, f"`{module_path}:{attr}` is None — app creation failed"
     assert callable(obj), f"`{module_path}:{attr}` is not callable"
+
+
+# ---------------------------------------------------------------------------
+# Test 5 — Pydantic version is Python 3.14-compatible (>= 2.12.0)
+# ---------------------------------------------------------------------------
+
+def test_pydantic_version_supports_python_314() -> None:
+    """
+    Regression: pydantic==2.8.2 is incompatible with Python 3.14.
+
+    On Python 3.14, inspect.signature() (used by pydantic < 2.12.0 via
+    _decorators._is_classmethod_from_sig) calls annotationlib which eagerly
+    evaluates the return-type annotation of a model_validator while the class
+    body is still being defined.  If the return type references the class by
+    name (e.g. -> "PlayerRegisterRequest"), Python raises NameError because
+    the class isn't in scope yet; pydantic wraps this as
+    PydanticUndefinedAnnotation.
+
+    pydantic 2.12.0 added Python 3.14 support and switched to
+    signature_no_eval, which never evaluates annotations.  Any version < 2.12
+    on Python 3.14 is broken by design.
+    """
+    import sys
+    from packaging.version import Version
+    import pydantic
+
+    pydantic_ver = Version(pydantic.__version__)
+    python_ver = sys.version_info
+
+    if python_ver >= (3, 14):
+        assert pydantic_ver >= Version("2.12.0"), (
+            f"pydantic {pydantic.__version__} is incompatible with Python "
+            f"{python_ver.major}.{python_ver.minor}. "
+            "Upgrade to pydantic>=2.12.0 in requirements.txt."
+        )
+
+
+# ---------------------------------------------------------------------------
+# Test 6 — model_validator(mode="after") class-definition-time safety
+# ---------------------------------------------------------------------------
+
+def test_model_validator_after_no_class_annotation_at_definition_time() -> None:
+    """
+    Verifies that defining a BaseModel with model_validator(mode='after') and
+    a Self return type does NOT raise any exception at class-definition time.
+
+    This specifically guards against the pydantic < 2.12 / Python 3.14
+    regression where inspect.signature() was called during class body
+    execution and tried to evaluate a string annotation referencing the class
+    being defined (which didn't exist yet).
+    """
+    _set_min_env()
+    from pydantic import BaseModel, model_validator
+    from typing import Self
+
+    # Must not raise at class-definition time or at model_rebuild time
+    class _GuardModel(BaseModel):
+        x: int = 1
+
+        @model_validator(mode="after")
+        def _check(self) -> Self:
+            return self
+
+    _GuardModel.model_rebuild(raise_errors=True)
+    instance = _GuardModel(x=42)
+    assert instance.x == 42
