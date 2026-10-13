@@ -14,7 +14,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response
+from fastapi import APIRouter, Body, Cookie, Depends, Request, Response
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -106,7 +106,7 @@ def _clear_refresh_cookie(response: Response) -> None:
 @limiter.limit("10/minute")
 async def register(
     request: Request,
-    body: PlayerRegisterRequest,
+    body: PlayerRegisterRequest = Body(...),
     db: AsyncSession = Depends(get_db),
 ) -> PlayerRegisterResponse:
     """
@@ -231,7 +231,7 @@ async def register(
 async def login(
     request: Request,
     response: Response,
-    body: PlayerLoginRequest,
+    body: PlayerLoginRequest = Body(...),
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     result = await db.execute(select(User).where(User.username == body.username))
@@ -396,7 +396,7 @@ async def logout(
 async def reset_password(
     request: Request,
     response: Response,
-    body: ResetPasswordRequest,
+    body: ResetPasswordRequest = Body(...),
     db: AsyncSession = Depends(get_db),
 ) -> ResetPasswordResponse:
     token_hash = hash_token(body.token)

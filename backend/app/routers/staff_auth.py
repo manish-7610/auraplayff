@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response
+from fastapi import APIRouter, Body, Cookie, Depends, Request, Response
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -82,7 +82,7 @@ def _clear_refresh_cookie(response: Response) -> None:
 async def staff_login(
     request: Request,
     response: Response,
-    body: StaffLoginRequest,
+    body: StaffLoginRequest = Body(...),
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     result = await db.execute(

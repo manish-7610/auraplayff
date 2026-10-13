@@ -187,3 +187,77 @@ def test_is_production_false_when_app_env_testing():
     from app.config import get_settings
     settings = get_settings()
     assert settings.is_production is False
+
+
+# ── Regression: 422 "loc: query body" bug ────────────────────────────────────
+# FastAPI with from __future__ import annotations + @limiter.limit decorator
+# used to treat Pydantic body params as query params, returning:
+#   {"detail":[{"type":"missing","loc":["query","body"],"msg":"Field required"}]}
+# Fix: annotate all rate-limited route body params with Body(...).
+
+async def test_register_no_query_body_422(client):
+    """
+    POST /api/auth/register with the exact frontend payload must NOT return
+    loc=['query','body'] 422.  It must either succeed (201) or return a
+    domain validation error (409/400/422 with loc starting with 'body.').
+    """
+    payload = {
+        "username": "regtest_user",
+        "ff_uid": "123456789",
+        "password": "SecurePass@123",
+        "confirm_password": "SecurePass@123",
+    }
+    resp = await client.post("/api/auth/register", json=payload)
+
+    # Must not be the query-param 422
+    if resp.status_code == 422:
+        detail = resp.json().get("detail", [])
+        for err in detail:
+            loc = err.get("loc", [])
+            assert loc != ["query", "body"], (
+                f"Got the 'loc=[query,body]' 422 bug — Body(...) annotation missing. "
+                f"Full detail: {detail}"
+            )
+    else:
+        # 201 created, or a legitimate domain error (409 duplicate, 400, etc.)
+        assert resp.status_code in (201, 400, 409), (
+            f"Unexpected status {resp.status_code}: {resp.text}"
+        )
+
+
+async def test_login_no_query_body_422(client):
+    """
+    POST /api/auth/login must not return loc=['query','body'] 422.
+    """
+    from tests.conftest import register_player
+    await register_player(client, username="logintest_qb", ff_uid="111222333")
+
+    resp = await client.post(
+        "/api/auth/login",
+        json={"username": "logintest_qb", "password": "SecurePass@123"},
+    )
+    if resp.status_code == 422:
+        detail = resp.json().get("detail", [])
+        for err in detail:
+            assert err.get("loc") != ["query", "body"], (
+                f"Got the 'loc=[query,body]' 422 bug on /login: {detail}"
+            )
+    else:
+        assert resp.status_code == 200, f"Unexpected status {resp.status_code}: {resp.text}"
+
+
+async def test_staff_login_no_query_body_422(client):
+    """
+    POST /api/admin/auth/login must not return loc=['query','body'] 422.
+    """
+    from tests.conftest import login_staff
+    resp = await login_staff(client)
+
+    if resp.status_code == 422:
+        detail = resp.json().get("detail", [])
+        for err in detail:
+            assert err.get("loc") != ["query", "body"], (
+                f"Got the 'loc=[query,body]' 422 bug on /admin/auth/login: {detail}"
+            )
+    else:
+        assert resp.status_code == 200, f"Unexpected status {resp.status_code}: {resp.text}"
