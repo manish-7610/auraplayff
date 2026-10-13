@@ -6,10 +6,8 @@
  * Razorpay secret) here — those live only on the server.
  */
 const CONFIG = {
-  /** Base URL of the FastAPI backend.  No trailing slash.
-   *  Dynamically mirrors the browser hostname so both
-   *  http://localhost:5500 and http://127.0.0.1:5500 work correctly. */
-  API_BASE_URL: `http://${window.location.hostname}:8000`,
+  /** Base URL of the FastAPI backend.  No trailing slash. */
+  API_BASE_URL: 'https://auraplayff.onrender.com',
 
   /** Razorpay checkout script CDN (safe public URL, no secret) */
   RAZORPAY_CHECKOUT_URL: 'https://checkout.razorpay.com/v1/checkout.js',

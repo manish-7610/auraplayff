@@ -1,0 +1,34 @@
+# Netlify configuration for AuraPlayFF frontend (multi-page HTML site)
+# Backend is deployed separately on Render (https://auraplayff.onrender.com).
+# CORS_ALLOWED_ORIGINS on the backend must be updated via the Render dashboard
+# once the actual Netlify site URL is known — do NOT hard-code it here.
+
+[build]
+  # Publish the frontend directory as the site root.
+  publish = "frontend"
+
+# ── Security / cache headers ──────────────────────────────────────────────────
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    # Immutable cache for hashed assets; adjust if assets are not content-hashed.
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ── Multi-page routing ────────────────────────────────────────────────────────
+# This is NOT a single-page application.  Every .html file is a real page and
+# must be served directly — do NOT add a SPA catch-all (/* → index.html 200)
+# here, because that would silently serve index.html for any typo'd URL instead
+# of a 404, breaking navigation guards in individual pages.
+#
+# The only redirect is a 404 fallback so the browser shows the site's own
+# 404 page rather than Netlify's generic one.  If you add a custom 404.html
+# to frontend/ later, Netlify will pick it up automatically.

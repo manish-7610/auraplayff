@@ -71,18 +71,18 @@ _COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days in seconds
 
 def _set_refresh_cookie(response: Response, raw_token: str) -> None:
     settings = get_settings()
-    # In production: Secure=True + SameSite=Lax (HTTPS, same-domain deployment).
+    # In production: frontend (Netlify) and backend (Render) are on different
+    # origins, so the browser will only send the cookie on cross-origin requests
+    # when SameSite=None; Secure=True is set (RFC 6265bis).
     # In local development: Secure=False + SameSite omitted (None) so the
     # httpOnly cookie is sent by the browser on cross-port fetch() calls
     # (e.g. localhost:5500 → localhost:8000 / 127.0.0.1:5500 → 127.0.0.1:8000).
-    # SameSite=Lax blocks cookies on cross-origin subresource requests, which
-    # is exactly what a credentials:include fetch() is — causing instant logout.
     response.set_cookie(
         key=_REFRESH_COOKIE,
         value=raw_token,
         httponly=True,
         secure=settings.is_production,
-        samesite="lax" if settings.is_production else None,
+        samesite="none" if settings.is_production else None,
         max_age=_COOKIE_MAX_AGE,
         path="/api/auth",
     )
